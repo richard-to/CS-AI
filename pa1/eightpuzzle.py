@@ -1,6 +1,5 @@
 import itertools
-
-from copy import deepcopy
+import time
 
 def main():
     cost = 1
@@ -32,8 +31,9 @@ def main():
 
     found = False
     iteration = 0
+    start = time.time()
     while iteration < 200000 and found is False and len(states) > 0:
-
+        print iteration
         currentState = states.pop()
         if currentState == goalState:
             print iteration
@@ -59,7 +59,9 @@ def main():
                         visited.add(newState)
                         states.insert(0, newState)
         iteration += 1
-
+    elapsed = (time.time() - start)
+    print start
+    print elapsed
 
 if __name__ == '__main__':
     main()
