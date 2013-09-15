@@ -344,7 +344,8 @@ def greedyCost(self):
 def main():
     visited = set()
 
-    PuzzleState.hueristic = manhattanHueristic
+    #PuzzleState.hueristic = misplacedTilesHueristic
+    #PuzzleState.hueristic = manhattanHueristic
     #PuzzleState.predictedCost = greedyCost
     startState = genRandPuzzle()
 
@@ -365,16 +366,14 @@ def main():
 
     maxIterations = 200000
     iteration = 0
-    found = False
+    endState = None
     start = time.time()
-    while iteration < maxIterations and not found and not queue.empty():
-        print iteration
+    while iteration < maxIterations and not endState and not queue.empty():
         currentState = queue.next()
         if currentState not in visited:
             visited.add(currentState)
             if currentState.isGoal():
-                currentState.printState()
-                found = True
+                endState = currentState
             else:
                 actions = [currentState.slideUp, currentState.slideDown,
                     currentState.slideLeft, currentState.slideRight]
@@ -384,7 +383,27 @@ def main():
                         queue.add(newState)
             iteration += 1
     elapsed = (time.time() - start)
-    print elapsed
+
+    print ':'.join(['Iterations', str(iteration)])
+    print ':'.join(['Elapsed', str(elapsed)])
+
+    print "Start State:"
+    startState.printState()
+    print "Goal State:"
+    startState.goal.printState()
+    print "Final State:"
+    endState.printState()
+
+    path = []
+    pathState = endState
+    while pathState.last:
+        path.insert(0, pathState)
+        pathState = pathState.last
+
+    print "Moves:"
+    for i in xrange(len(path)):
+        print i + 1
+        path[i].printState()
 
 
 if __name__ == '__main__':
