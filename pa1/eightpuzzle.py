@@ -42,6 +42,10 @@ class PuzzleState(object):
     def validPos(self, col, row):
         """
         Checks if col/row pair are valid positions in puzzle
+
+        Attributes:
+            col: Column index
+            row: Row index
         """
         return (0 <= col < self.sideLen and 0 <= row < self.sideLen)
 
@@ -53,7 +57,7 @@ class PuzzleState(object):
         This is an private method and should not be
         called directly.
 
-        Args:
+        Attributes:
             col: Column index to swap with blank column
             row: Row index to swap with blank row
 
@@ -75,6 +79,9 @@ class PuzzleState(object):
         return nextPuzzleState
 
     def isGoal(self):
+        """
+        Checks whether this state is a goal state
+        """
         return self == self.goal
 
     def predictedCost(self):
@@ -333,13 +340,14 @@ def greedyCost(self):
     """
     return self.calcStepCost()
 
+
 def main():
     visited = set()
 
     PuzzleState.hueristic = manhattanHueristic
     #PuzzleState.predictedCost = greedyCost
     startState = genRandPuzzle()
-    """
+
     startState = PuzzleState((
         (7, 2, 4),
         (5, 0, 6),
@@ -351,7 +359,7 @@ def main():
         (6, 7, 8)
     ))
     startState.goal = goalState
-    """
+
     queue = PuzzleStateQueue()
     queue.add(startState)
 
