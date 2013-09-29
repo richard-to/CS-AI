@@ -72,7 +72,7 @@ def runHillClimbing(grid):
     return bestTour
 
 
-def runRandomRestartHillClimbing(grid, runs=10):
+def runRandomRestartHillClimbing(grid, runs=50):
     bestTour = runHillClimbing(grid)
     for i in xrange(runs - 1):
         nextTour = runHillClimbing(grid)
@@ -81,11 +81,19 @@ def runRandomRestartHillClimbing(grid, runs=10):
     return bestTour
 
 
+def costFunction3(time):
+    return 2500 * exp(-0.0000002 * time**2 - 0.000001*time)
+
+
+def costFunction2(time):
+    return 2500 - 0.0002 * time**2
+
+
 def costFunction(time):
-    return 2500 - 0.2 * time
+    return 2500 - time
 
 
-def runSimulatedAnnealing(grid, costFunction=costFunction):
+def runSimulatedAnnealing(grid, costFunction=costFunction3):
     k = 2
     tour = generateTour(len(grid))
     bestTour = [calcCost(tour, grid), tour]
@@ -93,7 +101,7 @@ def runSimulatedAnnealing(grid, costFunction=costFunction):
     t = 0
     while True:
         T = costFunction(t)
-        if T == 0:
+        if T <= 0:
             return bestTour
 
         tourPermutations = getTourPermutations(nextTour[1], grid)
