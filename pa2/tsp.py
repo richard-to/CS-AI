@@ -1,6 +1,5 @@
-import sys
-from math import exp, expm1
-from random import randint, random, sample, seed, shuffle
+import random
+from math import exp, expm1, floor, cos, ceil
 
 
 def getCityNames():
@@ -69,7 +68,7 @@ def getCityNames():
     ]
 
 
-def generateCostGrid(n=10, min=100, max=2500):
+def generateCostGrid(n=10, min=100, max=2500, randint=None):
     """
     Generates a 2-d array to use as the cost grid.
 
@@ -77,7 +76,10 @@ def generateCostGrid(n=10, min=100, max=2500):
         n: The size of the cost grid. Creates an n x n matrix
         min: Minimum cost. Inclusive. Should be less than max cost
         max: Maximum cost. Inclusive.
+        randint: Pass in instance of randint to override global randint function
     """
+    if randint is None:
+        randint = random.randint
     return [[randint(min, max) for g in xrange(n)] for i in xrange(n)]
 
 
@@ -92,7 +94,7 @@ def generateTour(n=10):
         An array of values from 0 to n-1. The values will be in random order.
     """
     tour = range(1, n)
-    shuffle(tour)
+    random.shuffle(tour)
     tour.insert(0, 0)
     return tour
 
@@ -245,6 +247,39 @@ def runRandomRestartHillClimbing(grid, tour=None, restarts=50):
     return bestTour
 
 
+def scheduleFunction5(time):
+    """
+    Schedule function for simulated annealing
+
+    Args:
+        time: Current iteration count
+
+    Returns:
+        Calculated schedule value
+    """
+    if (time == 2000):
+        return 0
+    else:
+        T = ceil(2500 * exp(-.002 * time) * cos(.1 * time))
+        if T > 0:
+            return T
+        else:
+            return 1
+
+
+def scheduleFunction4(time):
+    """
+    Schedule function for simulated annealing
+
+    Args:
+        time: Current iteration count
+
+    Returns:
+        Calculated schedule value
+    """
+    return floor(1250.0 * cos(1/2500.0 * float(time)) + 1250)
+
+
 def scheduleFunction3(time):
     """
     Schedule function for simulated annealing
@@ -314,7 +349,7 @@ def runSimulatedAnnealing(grid, tour=None, scheduleFunction=scheduleFunction3):
             return bestTour
 
         tourPermutations = getTourPermutations(nextTour[1], grid)
-        shuffle(tourPermutations)
+        random.shuffle(tourPermutations)
         for currentTour in tourPermutations:
             if currentTour[0] <= nextTour[0]:
                 nextTour = currentTour
@@ -323,7 +358,7 @@ def runSimulatedAnnealing(grid, tour=None, scheduleFunction=scheduleFunction3):
                 break
             else:
                 result = abs(currentTour[0] - nextTour[0])/T
-                if result < 13 and 1/exp(result) >= random():
+                if result < 13 and 1/exp(result) >= random.random():
                     nextTour = currentTour
                     if nextTour[0] < bestTour[0]:
                         bestTour = nextTour
@@ -356,21 +391,27 @@ def printTour(tour, grid, cityNames):
 def main():
 
     # Settings
-    seedValue = 10
-    n = 10
-    restarts = 50
+    costSeed = 100
+    globalSeed = 155
+    n = 20
+    min=100
+    max=2500
 
-    if seedValue:
-        seed(seedValue)
+    if globalSeed:
+        random.seed(globalSeed)
 
     cityNames = getCityNames()
-    costGrid = generateCostGrid(n)
+
+    costRand = random.Random()
+    costRand.seed(costSeed)
+
+    costGrid = generateCostGrid(n, min, max, costRand.randint)
     initialTour = generateTour(len(costGrid))
     initialCost = calcCost(initialTour, costGrid)
 
     print "Settings:"
     print "----------------------------"
-    print ''.join(['Control Parameters: SEED = ', str(seedValue), ', CITIES = ', str(n), "\n"])
+    print ''.join(['Control Parameters: COST_SEED = ', str(costSeed), ', CITIES = ', str(n), "\n"])
 
     print "Cost Matrix:"
     print "----------------------------"
@@ -380,8 +421,28 @@ def main():
     print "----------------------------"
     printTour(initialTour, costGrid, cityNames)
 
-    bestTourRandomRestart = runRandomRestartHillClimbing(costGrid, initialTour, restarts)
-    print ''.join(["\nBest Tour using Random Restart (", str(restarts), ' restarts):'])
+    bestTourHillClimbing = runHillClimbing(costGrid, initialTour)
+    print "\nBest Tour using Hill Climbing:"
+    print "----------------------------"
+    printTour(bestTourHillClimbing[1], costGrid, cityNames)
+
+    bestTourRandomRestart = runRandomRestartHillClimbing(costGrid, initialTour, 50)
+    print "\nBest Tour using Random Restart (50 restarts):"
+    print "----------------------------"
+    printTour(bestTourRandomRestart[1], costGrid, cityNames)
+
+    bestTourRandomRestart = runRandomRestartHillClimbing(costGrid, initialTour, 100)
+    print "\nBest Tour using Random Restart (100 restarts):"
+    print "----------------------------"
+    printTour(bestTourRandomRestart[1], costGrid, cityNames)
+
+    bestTourRandomRestart = runRandomRestartHillClimbing(costGrid, initialTour, 150)
+    print "\nBest Tour using Random Restart (150 restarts):"
+    print "----------------------------"
+    printTour(bestTourRandomRestart[1], costGrid, cityNames)
+
+    bestTourRandomRestart = runRandomRestartHillClimbing(costGrid, initialTour, 300)
+    print "\nBest Tour using Random Restart (300 restarts):"
     print "----------------------------"
     printTour(bestTourRandomRestart[1], costGrid, cityNames)
 
@@ -397,6 +458,16 @@ def main():
 
     bestTourSimulatedAnnealing = runSimulatedAnnealing(costGrid, initialTour, scheduleFunction3)
     print "\nBest Tour using Simulated Annealing with schedule cost: 2500 * e^(-0.0000002 * t^2 - 0.000001*t)"
+    print "----------------------------"
+    printTour(bestTourSimulatedAnnealing[1], costGrid, cityNames)
+
+    bestTourSimulatedAnnealing = runSimulatedAnnealing(costGrid, initialTour, scheduleFunction4)
+    print "\nBest Tour using Simulated Annealing with schedule cost: floor(1250 * cos(1/2500 * t) + 1250)"
+    print "----------------------------"
+    printTour(bestTourSimulatedAnnealing[1], costGrid, cityNames)
+
+    bestTourSimulatedAnnealing = runSimulatedAnnealing(costGrid, initialTour, scheduleFunction5)
+    print "\nBest Tour using Simulated Annealing with schedule cost: ceil(2500 * exp(-.02 * time) * cos(.1 * time)"
     print "----------------------------"
     printTour(bestTourSimulatedAnnealing[1], costGrid, cityNames)
 
