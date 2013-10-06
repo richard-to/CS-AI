@@ -1,16 +1,65 @@
+import sqlite3
+
+conn = sqlite3.connect('tictactoe.db')
+c = conn.cursor()
+
+try:
+    c.execute('''CREATE TABLE ttt_cache (state text, outcome integer, PRIMARY KEY(state))''')
+    conn.commit()
+except:
+    pass
+
+
+cache = []
+
+def storeCache(cache):
+    for m in cache:
+        try:
+            c.execute("INSERT INTO ttt_cache VALUES (\'" + str(m[0]) + "'," + str(m[1]) + ")")
+        except:
+            pass
+    conn.commit()
+
+
+def checkCache(state):
+    c.execute('SELECT * FROM ttt_cache WHERE state = ?', (str(state),))
+    result = c.fetchone()
+    if result:
+        return result[1]
+    else:
+        return None
+
+
+def writeCacheToFile(cache):
+    movesFile = 'output.txt'
+    with open(movesFile, 'w') as f:
+        for m in cache:
+            f.write(str(m))
+            f.write("\n")
+
+
 class TicTacToeMiniMax(object):
     def __init__(self, min=1, max=2):
         self.min = min
         self.max = max
+        self.cache = []
 
     def decision(self, state):
         bestMove = float("-inf")
         move = 0
         for a in self.actionsMax(state):
-            predictedMove = self.minValue(a)
+            result = checkCache(a)
+            if result is not None:
+                predictedMove = result
+            else:
+                predictedMove = self.minValue(a, 0)
+                self.cache.append([a, predictedMove, 0])
+
             if predictedMove > bestMove:
                 bestMove = predictedMove
                 move = a
+
+        storeCache(self.cache)
 
         for row in xrange(3):
             for col in xrange(3):
@@ -19,25 +68,32 @@ class TicTacToeMiniMax(object):
 
         return move
 
-    def maxValue(self, state):
+    def maxValue(self, state, d):
         if self.terminalTest(state):
             return self.utility(state)
         else:
-            v = float("-inf")
-            for a in self.actionsMax(state):
-                v = self.findMax(v, self.minValue(a))
-            return v
+            result = checkCache(state)
+            if result is not None:
+                return result
+            else:
+                v = float("-inf")
+                aBest = None
+                for a in self.actionsMax(state):
+                    predicted = self.minValue(a, d + 1)
+                    if predicted > v:
+                        v = predicted
+                        aBest = [a, v, d]
+                self.cache.append(aBest)
+                return v
 
-
-    def minValue(self, state):
+    def minValue(self, state, d):
         if self.terminalTest(state):
             return self.utility(state)
         else:
             v = float("inf")
             for a in self.actionsMin(state):
-                v = self.findMin(v, self.maxValue(a))
+                v = self.findMin(v, self.maxValue(a, d + 1))
             return v
-
 
     def terminalTest(self, state):
         result = determineWinner(self.min, state)
