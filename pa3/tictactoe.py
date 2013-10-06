@@ -1,3 +1,104 @@
+class TicTacToeMiniMax(object):
+    def __init__(self, min=1, max=2):
+        self.min = min
+        self.max = max
+
+    def decision(self, state):
+        bestMove = float("-inf")
+        move = 0
+        for a in self.actionsMax(state):
+            predictedMove = self.minValue(a)
+            if predictedMove > bestMove:
+                bestMove = predictedMove
+                move = a
+
+        for row in xrange(3):
+            for col in xrange(3):
+                if move[row][col] != state[row][col]:
+                    return 3 * row + col
+
+        return move
+
+    def maxValue(self, state):
+        if self.terminalTest(state):
+            return self.utility(state)
+        else:
+            v = float("-inf")
+            for a in self.actionsMax(state):
+                v = self.findMax(v, self.minValue(a))
+            return v
+
+
+    def minValue(self, state):
+        if self.terminalTest(state):
+            return self.utility(state)
+        else:
+            v = float("inf")
+            for a in self.actionsMin(state):
+                v = self.findMin(v, self.maxValue(a))
+            return v
+
+
+    def terminalTest(self, state):
+        result = determineWinner(self.min, state)
+        if result == 0:
+            result = determineWinner(self.max, state)
+
+        if result == 0:
+            return False
+        else:
+            return True
+
+
+    def utility(self, state):
+        result = determineWinner(self.min, state)
+        if result == 0:
+            result = determineWinner(self.max, state)
+
+        if result == self.min:
+            return -1
+        elif result == self.max:
+            return 1
+        else:
+            return 0
+
+
+    def actionsMax(self, state):
+        nextMoves = []
+        for move in xrange(9):
+            newState = makeMove(self.max, move, state)
+            if newState:
+                nextMoves.append(newState)
+        return nextMoves
+
+
+    def actionsMin(self, state):
+        nextMoves = []
+        for move in xrange(9):
+            newState = makeMove(self.min, move, state)
+            if newState:
+                nextMoves.append(newState)
+        return nextMoves
+
+
+    def findMax(self, current, new):
+        if new > current:
+            return new
+        else:
+            return current
+
+
+    def findMin(self, current, new):
+        if new < current:
+            return new
+        else:
+            return current
+
+
+def getComputerPlayerMove(player, board):
+    ai = TicTacToeMiniMax()
+    return ai.decision(board)
+
 
 def printBoard(board):
     for row in board:
@@ -31,8 +132,12 @@ def getHumanPlayerMove(playerSymbol, board):
 def makeMove(player, move, board):
     row = move / 3
     col = move % 3
-    board[row][col] = player
-    return board
+    if board[row][col] == 0:
+        newBoard = [r[:] for r in board]
+        newBoard[row][col] = player
+        return newBoard
+    else:
+        return None
 
 
 def determineWinner(player, board):
@@ -73,7 +178,7 @@ def main():
 
     playerOrder = [
         [player1, getHumanPlayerMove],
-        [player2, getHumanPlayerMove]
+        [player2, getComputerPlayerMove]
     ]
 
     if getWhoMovesFirst() is False:
