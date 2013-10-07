@@ -1,4 +1,7 @@
+import csv
 import random
+import time
+
 from math import exp, expm1, floor, cos, ceil
 
 
@@ -367,7 +370,7 @@ def runSimulatedAnnealing(grid, tour=None, scheduleFunction=scheduleFunction3):
     return bestTour
 
 
-def printTour(tour, grid, cityNames):
+def printTour(tour, grid, cityNames, elapsed=None):
     """
     Prints the tour and costs
 
@@ -386,16 +389,23 @@ def printTour(tour, grid, cityNames):
     print ''.join([str(stopCount), '. ', cityNames[tour[-1]], '/', cityNames[0], '(', str(grid[tour[-1]][0]), ')'])
     print "----------------------------"
     print ''.join(['Total Cost: ', str(totalCost)])
+    if elapsed is not None:
+        print ''.join(['Total Time: ', str(elapsed)])
 
 
 def main():
 
     # Settings
-    costSeed = 100
-    globalSeed = 155
+    csvOutput = False
+    basefile = "results"
+    costSeed = 10
+    runs = 5
+    globalSeed = 1000
     n = 20
     min=100
     max=2500
+    # End Settings
+
 
     if globalSeed:
         random.seed(globalSeed)
@@ -406,8 +416,74 @@ def main():
     costRand.seed(costSeed)
 
     costGrid = generateCostGrid(n, min, max, costRand.randint)
-    initialTour = generateTour(len(costGrid))
-    initialCost = calcCost(initialTour, costGrid)
+
+    algorithms = [
+        {
+            "title": "Hill Climbing",
+            "algorithm": lambda it: runHillClimbing(costGrid, it)
+        },
+        {
+            "title": "Random Restart: 50",
+            "algorithm": lambda it: runRandomRestartHillClimbing(costGrid, it, 50)
+        },
+        {
+            "title": "Random Restart: 100",
+            "algorithm": lambda it: runRandomRestartHillClimbing(costGrid, it, 100)
+        },
+        {
+            "title": "Random Restart: 150",
+            "algorithm": lambda it: runRandomRestartHillClimbing(costGrid, it, 150)
+        },
+        {
+            "title": "Random Restart: 300",
+            "algorithm": lambda it: runRandomRestartHillClimbing(costGrid, it, 300)
+        },
+        {
+            "title": "Simulated Annealing: 2500 - t",
+            "algorithm": lambda it: runSimulatedAnnealing(costGrid, it, scheduleFunction)
+        },
+        {
+            "title": "Simulated Annealing: 2500 - 0.0002 * t^2",
+            "algorithm": lambda it: runSimulatedAnnealing(costGrid, it, scheduleFunction2)
+        },
+        {
+            "title": "Simulated Annealing: 2500 * e^(-0.0000002 * t^2 - 0.000001*t)",
+            "algorithm": lambda it: runSimulatedAnnealing(costGrid, it, scheduleFunction3)
+        },
+        {
+            "title": "Simulated Annealing: floor(1250 * cos(1/2500 * t) + 1250)",
+            "algorithm": lambda it: runSimulatedAnnealing(costGrid, it, scheduleFunction4)
+        },
+        {
+            "title": "Simulated Annealing: ceil(2500 * exp(-.02 * time) * cos(.1 * time)",
+            "algorithm": lambda it: runSimulatedAnnealing(costGrid, it, scheduleFunction4)
+        },
+    ]
+
+    results = []
+    for i in xrange(runs):
+        algoResults = []
+
+        initialTour = generateTour(len(costGrid))
+        initialCost = calcCost(initialTour, costGrid)
+
+        for algo in algorithms:
+            start = time.time()
+            bestTour = algo['algorithm'](initialTour)
+            elapsed = (time.time() - start)
+            algoResults.append({
+                "title": algo["title"],
+                "best": bestTour[1],
+                "cost": bestTour[0],
+                "elapsed": elapsed
+            })
+
+        results.append({
+            "data": algoResults,
+            "initialTour": initialTour,
+            "initialCost": initialCost
+        })
+
 
     print "Settings:"
     print "----------------------------"
@@ -417,59 +493,48 @@ def main():
     print "----------------------------"
     printCostGrid(costGrid)
 
-    print "\nInitial Tour:"
-    print "----------------------------"
-    printTour(initialTour, costGrid, cityNames)
+    runCount = 1
+    for runResult in results:
+        data = runResult['data']
+        initialTour = runResult['initialTour']
+        initialCost = runResult['initialCost']
 
-    bestTourHillClimbing = runHillClimbing(costGrid, initialTour)
-    print "\nBest Tour using Hill Climbing:"
-    print "----------------------------"
-    printTour(bestTourHillClimbing[1], costGrid, cityNames)
+        print ''.join(["\n\nRun: ", str(runCount)])
+        print "============================\n"
+        initialTour = generateTour(len(costGrid))
+        initialCost = calcCost(initialTour, costGrid)
 
-    bestTourRandomRestart = runRandomRestartHillClimbing(costGrid, initialTour, 50)
-    print "\nBest Tour using Random Restart (50 restarts):"
-    print "----------------------------"
-    printTour(bestTourRandomRestart[1], costGrid, cityNames)
+        print "\nInitial Tour:"
+        print "----------------------------"
+        printTour(initialTour, costGrid, cityNames)
 
-    bestTourRandomRestart = runRandomRestartHillClimbing(costGrid, initialTour, 100)
-    print "\nBest Tour using Random Restart (100 restarts):"
-    print "----------------------------"
-    printTour(bestTourRandomRestart[1], costGrid, cityNames)
+        for algoResult in data:
+            print ''.join(["\n", algoResult['title']])
+            print "----------------------------"
+            printTour(algoResult['best'], costGrid, cityNames, algoResult['elapsed'])
 
-    bestTourRandomRestart = runRandomRestartHillClimbing(costGrid, initialTour, 150)
-    print "\nBest Tour using Random Restart (150 restarts):"
-    print "----------------------------"
-    printTour(bestTourRandomRestart[1], costGrid, cityNames)
+        runCount += 1
 
-    bestTourRandomRestart = runRandomRestartHillClimbing(costGrid, initialTour, 300)
-    print "\nBest Tour using Random Restart (300 restarts):"
-    print "----------------------------"
-    printTour(bestTourRandomRestart[1], costGrid, cityNames)
 
-    bestTourSimulatedAnnealing = runSimulatedAnnealing(costGrid, initialTour, scheduleFunction)
-    print "\nBest Tour using Simulated Annealing with schedule cost: 2500 - t"
-    print "----------------------------"
-    printTour(bestTourSimulatedAnnealing[1], costGrid, cityNames)
+    if csvOutput:
+        runCount = 1
+        filename = ''.join([basefile, str(costSeed), '.csv'])
+        with open(filename, 'w') as csvfile:
+            resultWriter = csv.writer(csvfile, quoting=csv.QUOTE_MINIMAL)
+            for runResult in results:
+                data = runResult['data']
+                resultWriter.writerow(["Run", "Initial Tour", "Initial Cost"])
+                resultWriter.writerow([str(runCount), str(initialTour), initialCost])
+                resultWriter.writerow(["Algorithm", "Best Tour", "Cost", "Elapsed"])
+                for algoResult in data:
+                    resultWriter.writerow([
+                         str(algoResult['title']),
+                         str(algoResult['best']),
+                         algoResult['cost'],
+                         algoResult['elapsed']
+                    ])
+                runCount += 1
 
-    bestTourSimulatedAnnealing = runSimulatedAnnealing(costGrid, initialTour, scheduleFunction2)
-    print "\nBest Tour using Simulated Annealing with schedule cost: 2500 - 0.0002 * t^2"
-    print "----------------------------"
-    printTour(bestTourSimulatedAnnealing[1], costGrid, cityNames)
-
-    bestTourSimulatedAnnealing = runSimulatedAnnealing(costGrid, initialTour, scheduleFunction3)
-    print "\nBest Tour using Simulated Annealing with schedule cost: 2500 * e^(-0.0000002 * t^2 - 0.000001*t)"
-    print "----------------------------"
-    printTour(bestTourSimulatedAnnealing[1], costGrid, cityNames)
-
-    bestTourSimulatedAnnealing = runSimulatedAnnealing(costGrid, initialTour, scheduleFunction4)
-    print "\nBest Tour using Simulated Annealing with schedule cost: floor(1250 * cos(1/2500 * t) + 1250)"
-    print "----------------------------"
-    printTour(bestTourSimulatedAnnealing[1], costGrid, cityNames)
-
-    bestTourSimulatedAnnealing = runSimulatedAnnealing(costGrid, initialTour, scheduleFunction5)
-    print "\nBest Tour using Simulated Annealing with schedule cost: ceil(2500 * exp(-.02 * time) * cos(.1 * time)"
-    print "----------------------------"
-    printTour(bestTourSimulatedAnnealing[1], costGrid, cityNames)
 
 if __name__ == '__main__':
     main()
