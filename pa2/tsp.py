@@ -401,7 +401,7 @@ def main():
     costSeed = 10
     runs = 5
     globalSeed = 1000
-    n = 20
+    n = 10
     min=100
     max=2500
     # End Settings
@@ -523,6 +523,8 @@ def main():
             resultWriter = csv.writer(csvfile, quoting=csv.QUOTE_MINIMAL)
             for runResult in results:
                 data = runResult['data']
+                initialTour = runResult['initialTour']
+                initialCost = runResult['initialCost']
                 resultWriter.writerow(["Run", "Initial Tour", "Initial Cost"])
                 resultWriter.writerow([str(runCount), str(initialTour), initialCost])
                 resultWriter.writerow(["Algorithm", "Best Tour", "Cost", "Elapsed"])
