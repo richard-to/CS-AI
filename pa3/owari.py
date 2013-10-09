@@ -31,14 +31,30 @@ def getHumanPlayerMove(validPits, board):
 
 
 def makeMove(move, board):
+    if move < 6:
+        goal = 6
+        skip = 13
+        min = 0
+        max = 5
+    else:
+        goal = 13
+        skip = 6
+        min = 7
+        max = 12
+
     seeds = board[move]
     board[move] = 0
     size = len(board)
     next = (move + 1) % size
+
     while seeds > 0:
-        board[next] += 1
+        if next != skip:
+            board[next] += 1
+            if seeds == 1 and board[next] == 1 and next >= min and next <= max:
+                board[goal] += board[12 - next]
+                board[12 - next] = 0
+            seeds -= 1
         next = (next + 1) % size
-        seeds -= 1
     return board
 
 
@@ -57,8 +73,12 @@ def calcScore(playerGoal, playerPits, board):
 
 
 def determineWinner(p0Score, p1Score):
-    return p1Score > p0Score
-
+    if p1Score > p0Score:
+        return 1
+    elif p0Score > p1Score:
+        return 0
+    else:
+        return 2
 
 def main():
     board = [3, 3, 3, 3, 3, 3, 0, 3, 3, 3, 3, 3, 3, 0]
@@ -76,7 +96,6 @@ def main():
     if getWhoMovesFirst():
         playerOrder.reverse()
 
-    player1Winner = False
     while True:
         for playerPits, moveFunc in playerOrder:
             printBoard(board)
@@ -89,14 +108,18 @@ def main():
             printScore(player0Score, player1Score)
 
             if checkEmptyPits(playerPits, board):
-                player1Winner = determineWinner(player0Score, player1Score)
                 break
 
+        if checkEmptyPits(playerPits, board):
+            break
 
-    if player1Winner:
+    status = determineWinner(player0Score, player1Score)
+    if status == 1:
         print "You won!"
-    else:
+    elif status == 0:
         print "You lost!"
+    else:
+        print "You tied!"
 
 
 if __name__ == '__main__':
