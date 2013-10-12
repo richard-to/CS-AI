@@ -1,2 +1,6 @@
 *.txt
 *.csv
+.idea
+*.iml
+*.db
+*.class
