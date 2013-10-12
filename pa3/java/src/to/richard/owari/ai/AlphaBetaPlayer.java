@@ -81,7 +81,7 @@ public class AlphaBetaPlayer extends Player {
             } else if (status == 1) {
                 return 100;
             } else if (status == 2) {
-                return 0;
+                return 10;
             } else if (currentDepth == maxDepth) {
                 return ((board[7] + board[8] + board[9] + board[10] + board[11] + board[12] + board[13]) -
                         (board[0] + board[1] + board[2] + board[3] + board[4] + board[5] + board[6]));
@@ -117,7 +117,7 @@ public class AlphaBetaPlayer extends Player {
             } else if (status == 1) {
                 return 100;
             } else if (status == 2) {
-                return 0;
+                return -10;
             } else if (currentDepth == maxDepth) {
                 return ((board[7] + board[8] + board[9] + board[10] + board[11] + board[12] + board[13]) -
                         (board[0] + board[1] + board[2] + board[3] + board[4] + board[5] + board[6]));
