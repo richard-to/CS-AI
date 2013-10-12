@@ -1,6 +1,7 @@
 package to.richard.owari;
 
 import to.richard.owari.ai.IComputerAi;
+import to.richard.owari.ai.IMoveListener;
 import to.richard.owari.gui.GameBoard;
 import to.richard.owari.gui.IMoveHook;
 
@@ -19,24 +20,28 @@ public class GameEngine {
 
     public GameEngine(IComputerAi ai) {
         _ai = ai;
+        _ai.setMoveListener(new MoveListener());
         _board = Owari.createBoard();
         _gameBoard = new GameBoard(_board, new HumanMoveHook());
         _gameBoard.addStartButtonListener(new StartButtonListener());
-
     }
 
     public void makeComputerMove() {
-        int move = _ai.makeMove(_board, _gameBoard.getDepth());
-        _board = Owari.makeMoveP1(move, _board);
-        _gameBoard.displayMoveStatusP1(move).updateState(_board);
-        int status = Owari.checkForWinner(_board);
-        if (status < Owari.STATE_CONTINUE) {
-            _gameBoard.displayEndGameStatus(status).endGame();
-        } else {
-            _gameBoard.displayTurnStatusP2().enableHumanMove(_board);
-        }
+        _ai.makeMove(_board, _gameBoard.getDepth());
     }
 
+    private class MoveListener implements IMoveListener {
+        public void movePerformed(int move) {
+            _board = Owari.makeMoveP1(move, _board);
+            _gameBoard.displayMoveStatusP1(move).updateState(_board);
+            int status = Owari.checkForWinner(_board);
+            if (status < Owari.STATE_CONTINUE) {
+                _gameBoard.displayEndGameStatus(status).endGame();
+            } else {
+                _gameBoard.displayTurnStatusP2().enableHumanMove(_board);
+            }
+        }
+    }
     private class HumanMoveHook implements IMoveHook {
         public void movePerformed(int move) {
             _gameBoard.disableHumanMove();
