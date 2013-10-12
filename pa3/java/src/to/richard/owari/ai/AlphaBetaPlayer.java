@@ -45,12 +45,14 @@ public class AlphaBetaPlayer extends Player {
             int bestMoveValue = Integer.MIN_VALUE;
             int bestMove = 0;
 
+            int alpha = Integer.MIN_VALUE;
+            int beta = Integer.MAX_VALUE;
             int moveValue = 0;
             int[] newBoard;
             for (int i = 0; i < 6; ++i) {
                 newBoard = Owari.makeMoveP1(i, _board);
                 if (newBoard != null) {
-                    moveValue = minValue(newBoard, currentDepth, _maxDepth);
+                    moveValue = minValue(newBoard, alpha, beta, currentDepth, _maxDepth);
                     if (moveValue > bestMoveValue) {
                         bestMoveValue = moveValue;
                         bestMove = i;
@@ -72,7 +74,7 @@ public class AlphaBetaPlayer extends Player {
             }
         }
 
-        public int minValue(int[] board, int currentDepth, int maxDepth) {
+        public int minValue(int[] board, int alpha, int beta, int currentDepth, int maxDepth) {
             int status = Owari.checkForWinner(board);
             if (status == 0) {
                 return -100;
@@ -90,9 +92,17 @@ public class AlphaBetaPlayer extends Player {
                 for (int i = 7; i < 14; ++i) {
                     newBoard = Owari.makeMoveP2(i, board);
                     if (newBoard != null) {
-                        moveValue = maxValue(newBoard, currentDepth + 1, maxDepth);
+                        moveValue = maxValue(newBoard, alpha, beta, currentDepth + 1, maxDepth);
                         if (moveValue < bestMoveValue) {
                             bestMoveValue = moveValue;
+                        }
+
+                        if (bestMoveValue <= alpha) {
+                            return bestMoveValue;
+                        }
+
+                        if (bestMoveValue < beta) {
+                            beta = bestMoveValue;
                         }
                     }
                 }
@@ -100,7 +110,7 @@ public class AlphaBetaPlayer extends Player {
             }
         }
 
-        public int maxValue(int[] board, int currentDepth, int maxDepth) {
+        public int maxValue(int[] board, int alpha, int beta, int currentDepth, int maxDepth) {
             int status = Owari.checkForWinner(board);
             if (status == 0) {
                 return -100;
@@ -118,9 +128,17 @@ public class AlphaBetaPlayer extends Player {
                 for (int i = 0; i < 6; ++i) {
                     newBoard = Owari.makeMoveP2(i, board);
                     if (newBoard != null) {
-                        moveValue = minValue(newBoard, currentDepth + 1, maxDepth);
+                        moveValue = minValue(newBoard, alpha, beta, currentDepth + 1, maxDepth);
                         if (moveValue > bestMoveValue) {
                             bestMoveValue = moveValue;
+                        }
+
+                        if (bestMoveValue >= beta) {
+                            return bestMoveValue;
+                        }
+
+                        if (bestMoveValue > alpha) {
+                            alpha = bestMoveValue;
                         }
                     }
                 }
