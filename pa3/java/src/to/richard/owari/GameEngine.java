@@ -26,7 +26,7 @@ public class GameEngine {
     }
 
     public void makeComputerMove() {
-        int move = _ai.makeMove(_board);
+        int move = _ai.makeMove(_board, _gameBoard.getDepth());
         _board = Owari.makeMoveP1(move, _board);
         _gameBoard.displayMoveStatusP1(move).updateState(_board);
         int status = Owari.checkForWinner(_board);

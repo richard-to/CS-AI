@@ -16,7 +16,7 @@ public class RandomPlayer implements IComputerAi {
         _rand = new Random();
     }
 
-    public int makeMove(int[] board) {
+    public int makeMove(int[] board, int depth) {
         ArrayList<Integer> moves = new ArrayList<Integer>();
         for (int i = Owari.P1_CUPS[0]; i <= Owari.P1_CUPS[1]; ++i) {
             if (board[i] > 0) {

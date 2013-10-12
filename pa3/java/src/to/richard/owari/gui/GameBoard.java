@@ -100,7 +100,6 @@ public class GameBoard extends JFrame {
         _depthSlider.setMinorTickSpacing(DEPTH_MINOR_TICK);
         _depthSlider.setPaintTicks(true);
         _depthSlider.setPaintLabels(true);
-        _depthSlider.setEnabled(false);
 
         JPanel mainPane = new JPanel();
         mainPane.setLayout(new BoxLayout(mainPane, BoxLayout.Y_AXIS));
@@ -130,7 +129,6 @@ public class GameBoard extends JFrame {
         _infoTextarea.append(STATUS_GAME_START);
         _startButton.setEnabled(false);
         _turnComboBox.setEnabled(false);
-        _depthSlider.setEnabled(true);
         return this;
     }
 
@@ -221,7 +219,7 @@ public class GameBoard extends JFrame {
 
     private class DepthChangeListener implements ChangeListener {
         public void stateChanged(ChangeEvent e) {
-            if (!_depthSlider.getValueIsAdjusting()) {
+            if (!_depthSlider.getValueIsAdjusting() && _startButton.isEnabled() == false) {
                 displayDepthChangedStatus();
             }
         }

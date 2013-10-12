@@ -1,5 +1,6 @@
 import to.richard.owari.GameEngine;
 import to.richard.owari.ai.IComputerAi;
+import to.richard.owari.ai.MiniMaxPlayer;
 import to.richard.owari.ai.RandomPlayer;
 import to.richard.owari.gui.*;
 
@@ -12,7 +13,7 @@ import java.awt.event.ActionListener;
  */
 public class Pa3 {
     public static void main(String[] args) {
-        IComputerAi ai = new RandomPlayer();
+        IComputerAi ai = new MiniMaxPlayer();
         GameEngine gameEngine = new GameEngine(ai);
     }
 }
