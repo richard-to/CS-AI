@@ -153,7 +153,10 @@ class TicTacToeMiniMax(object):
 
 def getComputerPlayerMove(player, board):
     ai = TicTacToeMiniMax()
-    return ai.decision(board)
+    start = time.time()
+    result = ai.decision(board)
+    print (time.time() - start)
+    return result
 
 
 def printBoard(board):
