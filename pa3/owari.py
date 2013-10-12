@@ -229,7 +229,7 @@ def makeMove(move, board):
     next = (move + 1) % size
 
     while seeds > 0:
-        if next != skip:
+        if next != 13:
             newBoard[next] += 1
             if seeds == 1 and newBoard[next] == 1 and next >= min and next <= max:
                 newBoard[goal] += newBoard[12 - next]
