@@ -26,7 +26,8 @@ public class GameBoard extends JFrame {
     public static final String STATUS_GAME_START = "Game starting...\n";
     public static final String STATUS_PLAYER_TURN = "%s player's turn.\n";
     public static final String STATUS_DEPTH_CHANGED = "Depth changed to %d.\n";
-    public static final String STATUS_MOVE = "%s player selected cup %d.\n";
+    public static final String STATUS_MOVE_TIME = "Computer move took %.3f seconds\n";
+    public static final String STATUS_MOVE = "Move %d: %s player selected cup %d.\n";
     public static final String STATUS_WIN = "You won!\n";
     public static final String STATUS_LOST = "You lost!\n";
     public static final String STATUS_TIED = "You tied!\n";
@@ -42,6 +43,7 @@ public class GameBoard extends JFrame {
 
     private ArrayList<Cup> _cups;
 
+    private JScrollPane _scrollPane;
     private JTextArea _infoTextarea;
     private JComboBox _turnComboBox;
     private JButton _startButton;
@@ -79,7 +81,7 @@ public class GameBoard extends JFrame {
         _infoTextarea = new JTextArea();
         _infoTextarea.setEditable(false);
         _infoTextarea.setRows(8);
-        JScrollPane scrollPane = new JScrollPane(
+        _scrollPane = new JScrollPane(
                 _infoTextarea,
                 JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
                 JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
@@ -106,7 +108,7 @@ public class GameBoard extends JFrame {
         mainPane.add(p2Pane);
         mainPane.add(goalPane);
         mainPane.add(p1Pane);
-        mainPane.add(scrollPane);
+        mainPane.add(_scrollPane);
 
         Container contentPane = getContentPane();
         contentPane.setLayout(new BorderLayout(0, 0));
@@ -181,23 +183,39 @@ public class GameBoard extends JFrame {
         return this;
     }
 
-    public GameBoard displayMoveStatusP1(int move) {
-        _infoTextarea.append(String.format(STATUS_MOVE, P1_NAME, move));
+    public GameBoard scrollGameLogToBottom() {
+        JScrollBar vertical = _scrollPane.getVerticalScrollBar();
+        vertical.setValue(vertical.getMaximum());
         return this;
     }
 
-    public GameBoard displayMoveStatusP2(int move) {
-        _infoTextarea.append(String.format(STATUS_MOVE, P2_NAME, move));
+    public GameBoard displayMoveStatusP1(int moveCount, int move) {
+        _infoTextarea.append(String.format(STATUS_MOVE, moveCount, P1_NAME, move));
+        scrollGameLogToBottom();
+        return this;
+    }
+
+    public GameBoard displayMoveStatusP2(int moveCount, int move) {
+        _infoTextarea.append(String.format(STATUS_MOVE, moveCount, P2_NAME, move));
+        scrollGameLogToBottom();
         return this;
     }
 
     public GameBoard displayTurnStatusP2() {
         _infoTextarea.append(String.format(STATUS_PLAYER_TURN, P2_NAME));
+        scrollGameLogToBottom();
         return this;
     }
 
     public GameBoard displayTurnStatusP1() {
         _infoTextarea.append(String.format(STATUS_PLAYER_TURN, P1_NAME));
+        scrollGameLogToBottom();
+        return this;
+    }
+
+    public GameBoard displayMoveTime(double time) {
+        _infoTextarea.append(String.format(STATUS_MOVE_TIME, time));
+        scrollGameLogToBottom();
         return this;
     }
 
@@ -209,11 +227,13 @@ public class GameBoard extends JFrame {
             statusText = STATUS_TIED;
         }
         _infoTextarea.append(statusText);
+        scrollGameLogToBottom();
         return this;
     }
 
     public GameBoard displayDepthChangedStatus() {
         _infoTextarea.append(String.format(STATUS_DEPTH_CHANGED, _depthSlider.getValue()));
+        scrollGameLogToBottom();
         return this;
     }
 

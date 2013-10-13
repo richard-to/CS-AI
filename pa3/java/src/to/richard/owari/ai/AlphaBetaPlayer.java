@@ -14,6 +14,9 @@ public class AlphaBetaPlayer extends Player {
     protected int _branches;
 
     public void makeMove(int[] board, int depth) {
+        _startTime = System.currentTimeMillis();
+        _elapsed = 0;
+
         _bestValueOverall = Integer.MIN_VALUE;
         _bestMoveOverall = 0;
         _branchesReturned = 0;
@@ -70,6 +73,7 @@ public class AlphaBetaPlayer extends Player {
             }
 
             if (_branchesReturned == _branches) {
+                _elapsed = System.currentTimeMillis() - _startTime;
                 _listener.movePerformed(_bestMoveOverall);
             }
         }
@@ -81,7 +85,7 @@ public class AlphaBetaPlayer extends Player {
             } else if (status == 1) {
                 return 100;
             } else if (status == 2) {
-                return 10;
+                return 50;
             } else if (currentDepth == maxDepth) {
                 return ((board[7] + board[8] + board[9] + board[10] + board[11] + board[12] + board[13]) -
                         (board[0] + board[1] + board[2] + board[3] + board[4] + board[5] + board[6]));
@@ -117,7 +121,7 @@ public class AlphaBetaPlayer extends Player {
             } else if (status == 1) {
                 return 100;
             } else if (status == 2) {
-                return -10;
+                return -50;
             } else if (currentDepth == maxDepth) {
                 return ((board[7] + board[8] + board[9] + board[10] + board[11] + board[12] + board[13]) -
                         (board[0] + board[1] + board[2] + board[3] + board[4] + board[5] + board[6]));

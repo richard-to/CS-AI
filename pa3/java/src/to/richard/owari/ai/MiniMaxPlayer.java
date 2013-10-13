@@ -14,6 +14,9 @@ public class MinimaxPlayer extends Player {
     protected int _branches;
 
     public void makeMove(int[] board, int depth) {
+        _startTime = System.currentTimeMillis();
+        _elapsed = 0;
+
         _bestValueOverall = Integer.MIN_VALUE;
         _bestMoveOverall = 0;
         _branchesReturned = 0;
@@ -68,6 +71,7 @@ public class MinimaxPlayer extends Player {
             }
 
             if (_branchesReturned == _branches) {
+                _elapsed = _startTime - System.currentTimeMillis();
                 _listener.movePerformed(_bestMoveOverall);
             }
         }

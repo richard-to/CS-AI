@@ -13,6 +13,7 @@ import java.awt.event.ActionListener;
  * Date: 10/11/13
  */
 public class GameEngine {
+    protected int _moveCount;
     protected int[] _board;
     protected GameBoard _gameBoard;
     protected int _playerTurn = Owari.CPU_PLAYER;
@@ -24,6 +25,7 @@ public class GameEngine {
         _board = Owari.createBoard();
         _gameBoard = new GameBoard(_board, new HumanMoveHook());
         _gameBoard.addStartButtonListener(new StartButtonListener());
+        _moveCount = 0;
     }
 
     public void makeComputerMove() {
@@ -33,7 +35,11 @@ public class GameEngine {
     private class MoveListener implements IMoveListener {
         public void movePerformed(int move) {
             _board = Owari.makeMoveP1(move, _board);
-            _gameBoard.displayMoveStatusP1(move).updateState(_board);
+            _moveCount++;
+            _gameBoard.displayMoveStatusP1(_moveCount, move)
+                    .updateState(_board)
+                    .displayMoveTime(_ai.getElapsedTime());
+
             int status = Owari.checkForWinner(_board);
             if (status < Owari.STATE_CONTINUE) {
                 _gameBoard.displayEndGameStatus(status).endGame();
@@ -44,10 +50,10 @@ public class GameEngine {
     }
     private class HumanMoveHook implements IMoveHook {
         public void movePerformed(int move) {
+            _moveCount++;
             _gameBoard.disableHumanMove();
-
             _board = Owari.makeMoveP2(move, _board);
-            _gameBoard.displayMoveStatusP2(move).updateState(_board);
+            _gameBoard.displayMoveStatusP2(_moveCount, move).updateState(_board);
 
             int status = Owari.checkForWinner(_board);
             if (status < Owari.STATE_CONTINUE) {

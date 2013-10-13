@@ -7,4 +7,5 @@ package to.richard.owari.ai;
 public interface IComputerAi {
     public void setMoveListener(IMoveListener listener);
     public void makeMove(int[] board, int depth);
+    public double getElapsedTime();
 }
