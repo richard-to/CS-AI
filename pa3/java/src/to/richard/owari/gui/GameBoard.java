@@ -37,7 +37,7 @@ public class GameBoard extends JFrame {
 
     public static final int DEPTH_MIN = 0;
     public static final int DEPTH_MAX = 100;
-    public static final int DEPTH_DEFAULT = 15;
+    public static final int DEPTH_DEFAULT = 16;
     public static final int DEPTH_MAJOR_TICK = 5;
     public static final int DEPTH_MINOR_TICK = 1;
 

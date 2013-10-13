@@ -26,54 +26,61 @@ public class MinimaxPlayer extends Player {
         for (int i = 0; i < 6; ++i) {
             newBoard = Owari.makeMoveP1(i, board);
             if (newBoard != null) {
-                Thread thread = new Thread(new RunMinimax(board, depth));
+                Thread thread = new Thread(new RunMinimax(i, board, depth));
                 thread.start();
             } else {
                 _branchesReturned++;
             }
         }
+        checkResult();
+    }
+
+
+    public synchronized void checkResult() {
+        if (_branchesReturned == _branches) {
+            _elapsed = System.currentTimeMillis() - _startTime;
+            _listener.movePerformed(_bestMoveOverall);
+        }
+    }
+
+    public synchronized void returnResult(int bestMove, int bestValue) {
+        _branchesReturned++;
+        if (bestValue > _bestValueOverall) {
+            _bestMoveOverall = bestMove;
+            _bestValueOverall = bestValue;
+        }
+        checkResult();
     }
 
     private class RunMinimax implements Runnable {
         private int[] _board;
         private int _maxDepth;
+        private int _moveId;
 
-        public RunMinimax(int[] board, int maxDepth) {
+        public RunMinimax(int moveId, int[] board, int maxDepth) {
+            _moveId = moveId;
             _board = board;
             _maxDepth = maxDepth;
         }
 
         public void run() {
             int currentDepth = 0;
-            int bestMoveValue = Integer.MIN_VALUE;
+            int bestMoveValue = Integer.MAX_VALUE;
             int bestMove = 0;
 
             int moveValue = 0;
             int[] newBoard;
-            for (int i = 0; i < 6; ++i) {
+            for (int i = 7; i < 14; ++i) {
                 newBoard = Owari.makeMoveP1(i, _board);
                 if (newBoard != null) {
-                    moveValue = minValue(newBoard, currentDepth, _maxDepth);
-                    if (moveValue > bestMoveValue) {
+                    moveValue = maxValue(newBoard, currentDepth, _maxDepth);
+                    if (moveValue < bestMoveValue) {
                         bestMoveValue = moveValue;
                         bestMove = i;
                     }
                 }
             }
-            returnResult(bestMove, bestMoveValue);
-        }
-
-        public synchronized void returnResult(int bestMove, int bestValue) {
-            _branchesReturned += 1;
-            if (bestValue > _bestValueOverall) {
-                _bestMoveOverall = bestMove;
-                _bestValueOverall = bestValue;
-            }
-
-            if (_branchesReturned == _branches) {
-                _elapsed = _startTime - System.currentTimeMillis();
-                _listener.movePerformed(_bestMoveOverall);
-            }
+            returnResult(_moveId, bestMoveValue);
         }
 
         public int minValue(int[] board, int currentDepth, int maxDepth) {
@@ -120,7 +127,7 @@ public class MinimaxPlayer extends Player {
                 int moveValue = 0;
                 int[] newBoard;
                 for (int i = 0; i < 6; ++i) {
-                    newBoard = Owari.makeMoveP2(i, board);
+                    newBoard = Owari.makeMoveP1(i, board);
                     if (newBoard != null) {
                         moveValue = minValue(newBoard, currentDepth + 1, maxDepth);
                         if (moveValue > bestMoveValue) {
