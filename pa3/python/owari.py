@@ -9,20 +9,19 @@ filterwarnings('ignore', category = mdb.Warning)
 
 conn = mdb.connect(*config.db)
 c = conn.cursor()
-c.execute('''CREATE TABLE IF NOT EXISTS owari_cache2 (state char(60), outcome tinyint)''')
+c.execute('''CREATE TABLE IF NOT EXISTS owari_cache (state char(60), outcome tinyint)''')
 conn.commit()
 
 memcache = {}
-c.execute('SELECT * FROM owari_cache2')
+c.execute('SELECT * FROM owari_cache')
 for row in c:
     memcache[row[0]] = row[1]
 
 
 def storeCache(state, score):
-    return None
     if str(state) not in memcache:
         try:
-            c.execute("INSERT INTO owari_cache2 VALUES (\'" + str(state) + "'," + str(score) + ")")
+            c.execute("INSERT INTO owari_cache VALUES (\'" + str(state) + "'," + str(score) + ")")
             conn.commit()
             memcache[str(state)] = score
         except:
@@ -46,7 +45,7 @@ class OwariAlphaBeta(object):
         for nextMove in xrange(6):
             newBoard = makeMoveP1(nextMove, board)
             if newBoard:
-                predictedMove = self.minValue(newBoard, alpha, beta, 0, 15)
+                predictedMove = self.minValue(newBoard, alpha, beta, 0, 10)
                 if predictedMove > bestMove:
                     bestMove = predictedMove
                     move = nextMove
