@@ -1,179 +1,193 @@
 import time
-import sqlite3
+import MySQLdb as mdb
 
-conn = sqlite3.connect('owari2.db')
+from warnings import filterwarnings
+
+import config
+
+filterwarnings('ignore', category = mdb.Warning)
+
+conn = mdb.connect(*config.db)
 c = conn.cursor()
+c.execute('''CREATE TABLE IF NOT EXISTS owari_cache2 (state char(60), outcome tinyint)''')
+conn.commit()
 
 memcache = {}
-
-try:
-    c.execute('''CREATE TABLE owari_cache (state text, outcome integer, PRIMARY KEY(state))''')
-    conn.commit()
-except:
-    pass
+c.execute('SELECT * FROM owari_cache2')
+for row in c:
+    memcache[row[0]] = row[1]
 
 
-def storeCache(cache):
-    for m in cache:
-        if checkCache(m[0]) == None:
-            try:
-                c.execute("INSERT INTO owari_cache VALUES (\'" + str(m[0]) + "'," + str(m[1]) + ")")
-                memcache[str(m[0])] = m[1]
-            except:
-                print m
-                pass
-    conn.commit()
+def storeCache(state, score):
+    return None
+    if str(state) not in memcache:
+        try:
+            c.execute("INSERT INTO owari_cache2 VALUES (\'" + str(state) + "'," + str(score) + ")")
+            conn.commit()
+            memcache[str(state)] = score
+        except:
+            pass
 
 
 def checkCache(state):
     if str(state) in memcache:
         return memcache[str(state)]
     else:
-        c.execute('SELECT * FROM owari_cache WHERE state = ?', (str(state),))
-        result = c.fetchone()
-        if result:
-            memcache[result[0]] = result[1]
-            return result[1]
-        else:
-            return None
+        return None
 
 
-class OwariMiniMax(object):
-    def __init__(self):
-        self.player0Pits = [0, 1, 2, 3, 4, 5]
-        self.player0Goal = 6
-        self.player1Pits = [7, 8, 9, 10, 11, 12]
-        self.player1Goal = 13
-
-    def decision(self, state):
-        bestMove = float("-inf")
+class OwariAlphaBeta(object):
+    def decision(self, board):
+        bestMove = -1000
+        bestBoard = None
         move = 0
+        alpha = -1000
+        beta = 1000
+        for nextMove in xrange(6):
+            newBoard = makeMoveP1(nextMove, board)
+            if newBoard:
+                predictedMove = self.minValue(newBoard, alpha, beta, 0, 15)
+                if predictedMove > bestMove:
+                    bestMove = predictedMove
+                    move = nextMove
+                    bestBoard = newBoard
+        return bestBoard
 
-        nextMoves = []
-        for move in xrange(6):
-            newState = makeMove(move, state)
-            if newState:
-                nextMoves.append(newState)
-
-        for a in nextMoves:
-            predictedMove = self.minValue(a, 0)
-            if predictedMove > bestMove:
-                bestMove = predictedMove
-                move = a
-
-        return move
-
-    def maxValue(self, state, d):
-        if checkEmptyPits(self.player0Pits, state) or checkEmptyPits(self.player1Pits, state):
-            player0Score = calcScore(self.player0Goal, self.player0Pits, state)
-            player1Score = calcScore(self.player1Goal, self.player1Pits, state)
-            result = determineWinner(player0Score, player1Score)
-            if result == 1:
-                return -1
-            elif result == 0:
-                return 1
-            else:
-                return 0
-        else:
-            result = checkCache(state)
-            if result is not None:
-                return result
-            else:
-                v = float("-inf")
-                aBest = None
-
-                nextMoves = []
-                for move in xrange(6):
-                    newState = makeMove(move, state)
-                    if newState:
-                        nextMoves.append(newState)
-
-                for a in nextMoves:
-                    predicted = self.minValue(a, d + 1)
-                    if predicted > v:
-                        v = predicted
-                        aBest = [a, v, d]
-
-                storeCache([aBest])
-                return v
-
-    def minValue(self, state, d):
-        if checkEmptyPits(self.player0Pits, state) or checkEmptyPits(self.player1Pits, state):
-            player0Score = calcScore(self.player0Goal, self.player0Pits, state)
-            player1Score = calcScore(self.player1Goal, self.player1Pits, state)
-            result = determineWinner(player0Score, player1Score)
-            if result == 1:
-                return -1
-            elif result == 0:
-                return 1
-            else:
-                return 0
-        else:
-            v = float("inf")
-            nextMoves = []
-            for move in xrange(7, 13):
-                newState = makeMove(move, state)
-                if newState:
-                    nextMoves.append(newState)
-
-            for a in nextMoves:
-                predicted = self.maxValue(a, d + 1)
-                if predicted < v:
-                    v = predicted
-            return v
-    """
-    def terminalTest(self, state):
-        if checkEmptyPits(self.player0Pits, state) or checkEmptyPits(self.player1Pits, state):
-            return True
-        else:
-            return False
-
-    def utility(self, state):
-        player0Score = calcScore(self.player0Goal, self.player0Pits, state)
-        player1Score = calcScore(self.player1Goal, self.player1Pits, state)
-        result = determineWinner(player0Score, player1Score)
-        if result == 1:
-            return -1
-        elif result == 0:
-            return 1
-        else:
+    def maxValue(self, board, alpha, beta, currentDepth, maxDepth=None):
+        status = checkForWinner(board)
+        if status == 0:
+            return -100
+        elif status == 1:
+            return 100
+        elif status == 2:
             return 0
-
-    def actionsMax(self, state):
-        nextMoves = []
-        for move in xrange(6):
-            newState = makeMove(move, state)
-            if newState:
-                nextMoves.append(newState)
-        return nextMoves
-
-    def actionsMin(self, state):
-        nextMoves = []
-        for move in xrange(7, 13):
-            newState = makeMove(move, state)
-            if newState:
-                nextMoves.append(newState)
-        return nextMoves
-
-    def findMax(self, current, new):
-        if new > current:
-            return new
+        elif currentDepth == maxDepth:
+            return ((board[7] + board[8] + board[9] + board[10] + board[11] + board[12] + board[13]) -
+                    (board[0] + board[1] + board[2] + board[3] + board[4] + board[5] + board[6]))
         else:
-            return current
+            cachedMoveValue = checkCache(board)
+            if cachedMoveValue is not None:
+                return cachedMoveValue
+            else:
+                bestMoveValue = -1000
+                moveValue = 0
+                bestCache = []
+                for i in xrange(6):
+                    newBoard = makeMoveP1(i, board)
+                    if newBoard is not None:
+                        moveValue = self.minValue(newBoard, alpha, beta, currentDepth + 1, maxDepth)
+                        if moveValue > bestMoveValue:
+                            bestMoveValue = moveValue
+                            bestCache = [newBoard, bestMoveValue]
 
-    def findMin(self, current, new):
-        if new < current:
-            return new
+                        if bestMoveValue >= beta:
+                            storeCache(bestCache[0], bestCache[1])
+                            return bestMoveValue
+
+                        if bestMoveValue > alpha:
+                            alpha = bestMoveValue
+
+                storeCache(bestCache[0], bestCache[1])
+                return bestMoveValue
+
+    def minValue(self, board, alpha, beta, currentDepth, maxDepth=None):
+        status = checkForWinner(board)
+        if status == 0:
+            return -100
+        elif status == 1:
+            return 100
+        elif status == 2:
+            return 0
+        elif currentDepth == maxDepth:
+            return ((board[7] + board[8] + board[9] + board[10] + board[11] + board[12] + board[13]) -
+                    (board[0] + board[1] + board[2] + board[3] + board[4] + board[5] + board[6]))
         else:
-            return current
-    """
+            bestMoveValue = 1000
+            moveValue = 0
+            for i in xrange(7, 14):
+                newBoard = makeMoveP2(i, board)
+                if newBoard is not None:
+                    moveValue = self.maxValue(newBoard, alpha, beta, currentDepth + 1, maxDepth)
+                    if moveValue < bestMoveValue:
+                        bestMoveValue = moveValue
+
+                    if bestMoveValue <= alpha:
+                        return bestMoveValue
+
+                    if bestMoveValue < beta:
+                        beta = bestMoveValue
+            return bestMoveValue
+
 
 def getComputerPlayerMove(player, board):
     start = time.time()
-    ai = OwariMiniMax()
+    ai = OwariAlphaBeta()
     result = ai.decision(board)
     print time.time() - start
     return result
+
+
+def makeMoveP2(move, board):
+    if board[move] == 0:
+        return None
+
+    newBoard = board[:]
+    next = (move + 1) % 14
+    seeds = newBoard[move]
+    newBoard[move] = 0
+
+    while seeds > 0:
+        if next != 6:
+            newBoard[next] += 1;
+            if seeds == 1 and newBoard[next] == 1and next >= 7 and next <= 12:
+                newBoard[13] += newBoard[12 - next]
+                newBoard[12 - next] = 0
+            seeds -= 1
+        next = (next + 1) % 14
+    return newBoard
+
+
+def makeMoveP1(move, board):
+    if board[move] == 0:
+        return None
+
+    newBoard = board[:]
+    next = (move + 1) % 14
+    seeds = newBoard[move]
+    newBoard[move] = 0
+
+    while seeds > 0:
+        if next != 13:
+            newBoard[next] += 1;
+            if seeds == 1 and newBoard[next] == 1and next >= 0 and next <= 5:
+                newBoard[6] += newBoard[12 - next]
+                newBoard[12 - next] = 0
+            seeds -= 1
+        next = (next + 1) % 14
+    return newBoard
+
+
+def calcScoreDiff(board):
+    p1Score = board[0] + board[1] + board[2] + board[3] + board[4] + board[5] + board[6]
+    p2Score = board[7] + board[8] + board[9] + board[10] + board[11] + board[12] + board[13]
+    return p2Score - p1Score
+
+
+def checkForWinner(board):
+    p1SeedSum = board[0] + board[1] + board[2] + board[3] + board[4] + board[5]
+    p2SeedSum = board[7] + board[8] + board[9] + board[10] + board[11] + board[12]
+    if p1SeedSum == 0 or p2SeedSum == 0:
+        p1Score = p1SeedSum + board[6]
+        p2Score = p2SeedSum + board[13]
+        if p1Score < p2Score:
+            return 0
+        elif p1Score > p2Score:
+            return 1
+        else:
+            return 2
+
+    else:
+        return 3
 
 
 def printBoard(board):

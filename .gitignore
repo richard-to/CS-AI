@@ -4,3 +4,5 @@
 *.iml
 *.db
 *.class
+config.py
+*.pyc
