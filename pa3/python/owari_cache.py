@@ -9,30 +9,45 @@ filterwarnings('ignore', category = mdb.Warning)
 
 conn = mdb.connect(*config.db)
 c = conn.cursor()
-c.execute('''CREATE TABLE IF NOT EXISTS owari_cache (state char(60), outcome tinyint)''')
+c.execute('''CREATE TABLE IF NOT EXISTS owari_cache (id bigint unsigned not null primary key auto_increment, state char(60), outcome tinyint, index(state))''')
 conn.commit()
 
 memcache = {}
-c.execute('SELECT * FROM owari_cache')
-for row in c:
-    memcache[row[0]] = row[1]
 
+recordsCommitLimit = 5000
+recordsInserted = 0
 
 def storeCache(state, score):
-    if str(state) not in memcache:
+    global memcache
+    global c
+    global conn
+    global recordsInserted
+    global recordsCommitLimit
+
+    if checkCache(state) is None:
         try:
-            c.execute("INSERT INTO owari_cache VALUES (\'" + str(state) + "'," + str(score) + ")")
-            conn.commit()
+            c.execute("INSERT INTO owari_cache(state,outcome) VALUES (\'" + str(state) + "'," + str(score) + ")")
             memcache[str(state)] = score
+            recordsInserted += 1
+            if recordsInserted >= recordsCommitLimit:
+                conn.commit()
+                recordsInserted = 0
+                memcache = {}
         except:
             pass
 
 
 def checkCache(state):
+    global memcache
     if str(state) in memcache:
         return memcache[str(state)]
     else:
-        return None
+        c.execute("""SELECT state, outcome FROM owari_cache where WHERE state = %s""", (str(state),))
+        r = c.fetchone()
+        if r is not None:
+            return r[1]
+        else:
+            return None
 
 
 class OwariAlphaBeta(object):
@@ -50,19 +65,18 @@ class OwariAlphaBeta(object):
                     bestMove = predictedMove
                     move = nextMove
                     bestBoard = newBoard
+
+            break
         return bestBoard
 
     def maxValue(self, board, alpha, beta, currentDepth, maxDepth=None):
         status = checkForWinner(board)
         if status == 0:
-            return -100
+            return -1
         elif status == 1:
-            return 100
+            return 1
         elif status == 2:
             return 0
-        elif currentDepth == maxDepth:
-            return ((board[7] + board[8] + board[9] + board[10] + board[11] + board[12] + board[13]) -
-                    (board[0] + board[1] + board[2] + board[3] + board[4] + board[5] + board[6]))
         else:
             cachedMoveValue = checkCache(board)
             if cachedMoveValue is not None:
@@ -92,18 +106,15 @@ class OwariAlphaBeta(object):
     def minValue(self, board, alpha, beta, currentDepth, maxDepth=None):
         status = checkForWinner(board)
         if status == 0:
-            return -100
+            return -1
         elif status == 1:
-            return 100
+            return 1
         elif status == 2:
             return 0
-        elif currentDepth == maxDepth:
-            return ((board[7] + board[8] + board[9] + board[10] + board[11] + board[12] + board[13]) -
-                    (board[0] + board[1] + board[2] + board[3] + board[4] + board[5] + board[6]))
         else:
             bestMoveValue = 1000
             moveValue = 0
-            for i in xrange(7, 14):
+            for i in xrange(7, 13):
                 newBoard = makeMoveP2(i, board)
                 if newBoard is not None:
                     moveValue = self.maxValue(newBoard, alpha, beta, currentDepth + 1, maxDepth)
@@ -138,7 +149,7 @@ def makeMoveP2(move, board):
     while seeds > 0:
         if next != 6:
             newBoard[next] += 1;
-            if seeds == 1 and newBoard[next] == 1and next >= 7 and next <= 12:
+            if seeds == 1 and newBoard[next] == 1 and next >= 7 and next <= 12:
                 newBoard[13] += newBoard[12 - next]
                 newBoard[12 - next] = 0
             seeds -= 1
@@ -158,7 +169,7 @@ def makeMoveP1(move, board):
     while seeds > 0:
         if next != 13:
             newBoard[next] += 1;
-            if seeds == 1 and newBoard[next] == 1and next >= 0 and next <= 5:
+            if seeds == 1 and newBoard[next] == 1 and next >= 0 and next <= 5:
                 newBoard[6] += newBoard[12 - next]
                 newBoard[12 - next] = 0
             seeds -= 1
