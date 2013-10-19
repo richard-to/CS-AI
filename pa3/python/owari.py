@@ -57,7 +57,7 @@ def checkForWinner(board):
     if p1SeedSum == 0 or p2SeedSum == 0:
         p1Score = p1SeedSum + board[6]
         p2Score = p2SeedSum + board[13]
-        if p1Score < p2Score:
+        if p2Score > p1Score:
             return 0
         elif p1Score > p2Score:
             return 1
@@ -68,7 +68,15 @@ def checkForWinner(board):
         return 3
 
 
+def evalScore(board):
+    return sum(board[0:7]) - sum(board[8:13])
+
+
 class OwariAlphaBeta(object):
+
+    def __init__(self, eval):
+        self.eval = eval
+
     def findMove(self, board, depth):
         bestValue = -1000
         bestMove = None
@@ -90,14 +98,13 @@ class OwariAlphaBeta(object):
     def maxValue(self, board, alpha, beta, cDepth, mDepth):
         status = checkForWinner(board)
         if status == 0:
-            return 100
-        elif status == 1:
             return -100
+        elif status == 1:
+            return 100
         elif status == 2:
             return 0
         elif cDepth == mDepth:
-            return ((board[0] + board[1] + board[2] + board[3] + board[4] + board[5] + board[6]) -
-                (board[7] + board[8] + board[9] + board[10] + board[11] + board[12] + board[13]))
+            return self.eval(board)
         else:
             bestValue = -1000
             moveValue = 0
@@ -118,14 +125,13 @@ class OwariAlphaBeta(object):
     def minValue(self, board, alpha, beta, cDepth, mDepth):
         status = checkForWinner(board)
         if status == 0:
-            return 100
-        elif status == 1:
             return -100
+        elif status == 1:
+            return 100
         elif status == 2:
             return 0
         elif cDepth == mDepth:
-            return ((board[0] + board[1] + board[2] + board[3] + board[4] + board[5] + board[6]) -
-                (board[7] + board[8] + board[9] + board[10] + board[11] + board[12] + board[13]))
+            return self.eval(board)
         else:
             bestValue = 1000
             moveValue = 0
@@ -144,15 +150,39 @@ class OwariAlphaBeta(object):
             return bestValue
 
 
-def getComputerP1Move(board, depth):
-    ai = OwariAlphaBeta()
+def getHumanP1Move(board, depth, evalScore):
+    return getHumanMove(board, range(0, 6))
+
+
+def getHumanP2Move(board, depth, evalScore):
+    return getHumanMove(board, range(7,13))
+
+
+def getHumanMove(board, validPits):
+    validMove = False
+    move = None
+    while validMove is False:
+        input = (raw_input("Pick a pit {}? ".format(str(validPits)))).strip()
+        try:
+            move = int(input)
+            if move in validPits and board[move] > 0:
+                validMove = True
+            else:
+                raise ValueError
+        except:
+            print "Please select a valid pit!"
+    return move
+
+
+def getComputerP1Move(board, depth, evalScore):
+    ai = OwariAlphaBeta(evalScore)
     move = ai.findMove(board, depth)
     return move
 
 
-def getComputerP2Move(board, depth):
+def getComputerP2Move(board, depth, evalScore):
     fBoard = board[7:14] + board[0:7]
-    move = getComputerP1Move(fBoard, depth)
+    move = getComputerP1Move(fBoard, depth, evalScore)
     fMove = move + 7
     return fMove
 
@@ -176,15 +206,14 @@ def printScore(board):
     print "Score: {} {}".format(str(p1Score), str(p2Score))
 
 
-
 def simulateOwari():
     MAX_DEPTH = 10
 
     PLAYER_1 = 0
     PLAYER_2 = 1
 
-    STATE_WIN = 0
-    STATE_LOST = 1
+    STATE_LOST = 2
+    STATE_WIN = 1
     STATE_TIED = 2
     STATE_CONTINUE = 3
 
@@ -196,8 +225,8 @@ def simulateOwari():
     board = createBoard()
 
     players = [
-        [makeMoveP1, getComputerP1Move],
-        [makeMoveP2, getComputerP2Move]
+        [makeMoveP1, getHumanP1Move, None],
+        [makeMoveP2, getComputerP2Move, evalScore]
     ]
 
     moveCount = 0
@@ -208,8 +237,8 @@ def simulateOwari():
     printBoard(board)
 
     while True:
-        makeMove, findMove = players[turn]
-        move = findMove(board, MAX_DEPTH)
+        makeMove, findMove, evalMove = players[turn]
+        move = findMove(board, MAX_DEPTH, evalMove)
         board = makeMove(move, board)
         status =checkForWinner(board)
 
