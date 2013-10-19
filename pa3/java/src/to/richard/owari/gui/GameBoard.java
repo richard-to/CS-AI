@@ -6,7 +6,6 @@ import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
-import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
 
@@ -221,7 +220,7 @@ public class GameBoard extends JFrame {
 
     public GameBoard displayEndGameStatus(int status) {
         String statusText = STATUS_WIN;
-        if (status == Owari.STATE_LOST) {
+        if (status == Owari.STATE_P1_WIN) {
             statusText = STATUS_LOST;
         } else if (status == Owari.STATE_TIED) {
             statusText = STATUS_TIED;

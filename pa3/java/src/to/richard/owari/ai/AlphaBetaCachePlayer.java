@@ -94,7 +94,7 @@ public class AlphaBetaCachePlayer extends Player {
         _elapsed = 0;
 
         int currentDepth = 0;
-        int bestMoveValue = Integer.MAX_VALUE;
+        int bestValue = Integer.MAX_VALUE;
         int bestMove = 0;
 
         int alpha = Integer.MIN_VALUE;
@@ -107,72 +107,72 @@ public class AlphaBetaCachePlayer extends Player {
             if (newBoard != null) {
                 if (newBoard != null) {
                     moveValue = minValue(newBoard, alpha, beta, currentDepth, depth);
-                    if (moveValue > bestMoveValue) {
+                    if (moveValue > bestValue) {
                         bestBoard = newBoard;
-                        bestMoveValue = moveValue;
+                        bestValue = moveValue;
                         bestMove = i;
                     }
                 }
             }
         }
         _elapsed = System.currentTimeMillis() - _startTime;
-        saveCache(bestBoard, bestMoveValue);
+        saveCache(bestBoard, bestValue);
         _listener.movePerformed(bestMove);
     }
 
     public int minValue(int[] board, int alpha, int beta, int currentDepth, int maxDepth) {
         int status = Owari.checkForWinner(board);
-        if (status == 0) {
-            return -1;
-        } else if (status == 1) {
-            return 1;
-        } else if (status == 2) {
+        if (status == Owari.STATE_P2_WIN) {
+            return -100;
+        } else if (status == Owari.STATE_P1_WIN) {
+            return 100;
+        } else if (status == Owari.STATE_TIED) {
             return 0;
         } else if (currentDepth == maxDepth) {
-            return ((board[7] + board[8] + board[9] + board[10] + board[11] + board[12] + board[13]) -
-                    (board[0] + board[1] + board[2] + board[3] + board[4] + board[5] + board[6]));
+            return (board[0] + board[1] + board[2] + board[3] + board[4] + board[5] + board[6]) -
+                    (board[7] + board[8] + board[9] + board[10] + board[11] + board[12] + board[13]);
         } else {
-            int bestMoveValue = Integer.MAX_VALUE;
+            int bestValue = Integer.MAX_VALUE;
             int moveValue = 0;
             int[] newBoard;
             for (int i = 7; i < 14; ++i) {
                 newBoard = Owari.makeMoveP2(i, board);
                 if (newBoard != null) {
                     moveValue = maxValue(newBoard, alpha, beta, currentDepth + 1, maxDepth);
-                    if (moveValue < bestMoveValue) {
-                        bestMoveValue = moveValue;
+                    if (moveValue < bestValue) {
+                        bestValue = moveValue;
                     }
 
-                    if (bestMoveValue <= alpha) {
-                        return bestMoveValue;
+                    if (bestValue <= alpha) {
+                        return bestValue;
                     }
 
-                    if (bestMoveValue < beta) {
-                        beta = bestMoveValue;
+                    if (bestValue < beta) {
+                        beta = bestValue;
                     }
                 }
             }
-            return bestMoveValue;
+            return bestValue;
         }
     }
 
     public int maxValue(int[] board, int alpha, int beta, int currentDepth, int maxDepth) {
         int status = Owari.checkForWinner(board);
-        if (status == 0) {
-            return -1;
-        } else if (status == 1) {
-            return 1;
-        } else if (status == 2) {
+        if (status == Owari.STATE_P2_WIN) {
+            return -100;
+        } else if (status == Owari.STATE_P1_WIN) {
+            return 100;
+        } else if (status == Owari.STATE_TIED) {
             return 0;
         } else if (currentDepth == maxDepth) {
-            return ((board[7] + board[8] + board[9] + board[10] + board[11] + board[12] + board[13]) -
-                    (board[0] + board[1] + board[2] + board[3] + board[4] + board[5] + board[6]));
+            return (board[0] + board[1] + board[2] + board[3] + board[4] + board[5] + board[6]) -
+                    (board[7] + board[8] + board[9] + board[10] + board[11] + board[12] + board[13]);
         } else {
             int cachedMoveValue = checkCache(board);
             if (cachedMoveValue != 1000) {
                 return cachedMoveValue;
             } else {
-                int bestMoveValue = Integer.MIN_VALUE;
+                int bestValue = Integer.MIN_VALUE;
                 int moveValue = 0;
                 int[] newBoard = null;
                 int[] bestBoard = null;
@@ -180,23 +180,23 @@ public class AlphaBetaCachePlayer extends Player {
                     newBoard = Owari.makeMoveP1(i, board);
                     if (newBoard != null) {
                         moveValue = minValue(newBoard, alpha, beta, currentDepth + 1, maxDepth);
-                        if (moveValue > bestMoveValue) {
-                            bestMoveValue = moveValue;
+                        if (moveValue > bestValue) {
+                            bestValue = moveValue;
                             bestBoard = newBoard;
                         }
 
-                        if (bestMoveValue >= beta) {
-                            saveCache(newBoard, bestMoveValue);
-                            return bestMoveValue;
+                        if (bestValue >= beta) {
+                            saveCache(newBoard, bestValue);
+                            return bestValue;
                         }
 
-                        if (bestMoveValue > alpha) {
-                            alpha = bestMoveValue;
+                        if (bestValue > alpha) {
+                            alpha = bestValue;
                         }
                     }
                 }
-                saveCache(bestBoard, bestMoveValue);
-                return bestMoveValue;
+                saveCache(bestBoard, bestValue);
+                return bestValue;
             }
         }
     }

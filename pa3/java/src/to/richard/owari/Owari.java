@@ -24,8 +24,8 @@ public class Owari {
     public static final int CPU_PLAYER = 0;
     public static final int HUMAN_PLAYER = 1;
 
-    public static final int STATE_WIN = 0;
-    public static final int STATE_LOST = 1;
+    public static final int STATE_P2_WIN = 0;
+    public static final int STATE_P1_WIN = 1;
     public static final int STATE_TIED = 2;
     public static final int STATE_CONTINUE = 3;
 
@@ -45,7 +45,7 @@ public class Owari {
         if (p1SeedSum == 0 || p2SeedSum == 0) {
             int p1Score = p1SeedSum + board[6];
             int p2Score = p2SeedSum + board[13];
-            if (p1Score < p2Score) {
+            if (p2Score > p1Score) {
                 return 0;
             } else if (p1Score > p2Score) {
                 return 1;
