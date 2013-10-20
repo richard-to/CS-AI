@@ -89,7 +89,7 @@ public class AlphaBetaCachePlayer extends Player {
         }
     }
 
-    public void makeMove(int[] board, int depth) {
+    public void makeMove(int[] board, int depth, int moveCount) {
         _startTime = System.currentTimeMillis();
         _elapsed = 0;
 

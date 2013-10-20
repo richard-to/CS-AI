@@ -16,7 +16,7 @@ public class RandomPlayer extends Player {
         _rand = new Random();
     }
 
-    public void makeMove(int[] board, int depth) {
+    public void makeMove(int[] board, int depth, int moveCount) {
         ArrayList<Integer> moves = new ArrayList<Integer>();
         for (int i = Owari.P1_CUPS[0]; i <= Owari.P1_CUPS[1]; ++i) {
             if (board[i] > 0) {

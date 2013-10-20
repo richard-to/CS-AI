@@ -29,7 +29,7 @@ public class GameEngine {
     }
 
     public void makeComputerMove() {
-        _ai.makeMove(_board, _gameBoard.getDepth());
+        _ai.makeMove(_board, _gameBoard.getDepth(), _moveCount);
     }
 
     private class MoveListener implements IMoveListener {

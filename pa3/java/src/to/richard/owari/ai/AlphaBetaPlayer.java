@@ -13,7 +13,7 @@ public class AlphaBetaPlayer extends Player {
     protected int _branchesReturned;
     protected int _branches;
 
-    public void makeMove(int[] board, int depth) {
+    public void makeMove(int[] board, int depth, int moveCount) {
         _startTime = System.currentTimeMillis();
         _elapsed = 0;
 
