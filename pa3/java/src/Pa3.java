@@ -1,8 +1,6 @@
 import to.richard.owari.GameEngine;
-import to.richard.owari.ai.AlphaBetaCachePlayer;
-import to.richard.owari.ai.AlphaBetaPlayer;
-import to.richard.owari.ai.IComputerAi;
-import to.richard.owari.ai.MinimaxPlayer;
+import to.richard.owari.Owari;
+import to.richard.owari.ai.*;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -22,7 +20,7 @@ public class Pa3 {
         if (USE_CACHE_PLAYER) {
             runAlphaBetaCachePlayer();
         } else {
-            IComputerAi ai = new AlphaBetaPlayer();
+            IComputerAi ai = new AlphaBetaPlayerID();
             GameEngine gameEngine = new GameEngine(ai);
         }
     }
