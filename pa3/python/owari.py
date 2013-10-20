@@ -72,6 +72,103 @@ def evalScore(board):
     return sum(board[0:7]) - sum(board[8:13])
 
 
+class OwariAlphaBetaDI(object):
+
+    def __init__(self, eval):
+        self.eval = eval
+        self.cache = {}
+
+    def findMove(self, board, depth):
+        moveOrder = []
+        for nextMove in xrange(6):
+            newBoard = makeMoveP1(nextMove, board)
+            moveOrder.append([-1000, newBoard, nextMove])
+
+        for endDepth in xrange(2, depth + 1, 2):
+            bestValue = -1000
+            bestMove = None
+            bestBoard = None
+
+            alpha = -1000
+            beta = 1000
+
+            moveOrder.sort(reverse=True)
+            for moveData in moveOrder:
+                newBoard = moveData[1]
+                if newBoard:
+                    moveValue = self.minValue(newBoard, alpha, beta, 0, endDepth)
+                    if moveValue > bestValue:
+                        bestValue = moveValue
+                        bestMove = moveData[2]
+                        bestBoard = newBoard
+                        moveData[0] = moveValue
+        return bestMove
+
+    def maxValue(self, board, alpha, beta, cDepth, mDepth):
+        status = checkForWinner(board)
+        if status == 0:
+            return -100
+        elif status == 1:
+            return 100
+        elif status == 2:
+            return 0
+        elif cDepth == mDepth:
+            return self.eval(board)
+        else:
+            bestValue = -1000
+            moveValue = 0
+            for i in xrange(6):
+                newBoard = makeMoveP1(i, board)
+                if newBoard is not None:
+                    moveValue = self.minValue(newBoard, alpha, beta, cDepth + 1, mDepth)
+                    if moveValue > bestValue:
+                        bestValue = moveValue
+
+                    if bestValue >= beta:
+                        return bestValue
+
+                    if bestValue > alpha:
+                        alpha = bestValue
+            return bestValue
+
+    def minValue(self, board, alpha, beta, cDepth, mDepth):
+        status = checkForWinner(board)
+        if status == 0:
+            return -100
+        elif status == 1:
+            return 100
+        elif status == 2:
+            return 0
+        elif cDepth == mDepth:
+            return self.eval(board)
+        else:
+            boardStr = str(board)
+            cachedData = None
+            if boardStr in self.cache:
+                cachedData = self.cache[boardStr]
+
+            if cachedData is not None and cachedData[1] >= mDepth:
+                return cachedData[0]
+            else:
+                bestValue = 1000
+                moveValue = 0
+                for i in xrange(7, 13):
+                    newBoard = makeMoveP2(i, board)
+                    if newBoard is not None:
+                        moveValue = self.maxValue(newBoard, alpha, beta, cDepth + 1, mDepth)
+                        if moveValue < bestValue:
+                            bestValue = moveValue
+
+                        if bestValue <= alpha:
+                            self.cache[boardStr] = (moveValue, mDepth)
+                            return bestValue
+
+                        if bestValue < beta:
+                            beta = bestValue
+                self.cache[boardStr] = (moveValue, mDepth)
+                return bestValue
+
+
 class OwariAlphaBeta(object):
 
     def __init__(self, eval):
@@ -175,8 +272,11 @@ def getHumanMove(board, validPits):
 
 
 def getComputerP1Move(board, depth, evalScore):
-    ai = OwariAlphaBeta(evalScore)
+    start = time.time()
+    ai = OwariAlphaBetaDI(evalScore)
+    #ai = OwariAlphaBeta(evalScore)
     move = ai.findMove(board, depth)
+    print time.time() - start
     return move
 
 
@@ -207,7 +307,7 @@ def printScore(board):
 
 
 def simulateOwari():
-    MAX_DEPTH = 10
+    MAX_DEPTH = 15
 
     PLAYER_1 = 0
     PLAYER_2 = 1
@@ -232,7 +332,7 @@ def simulateOwari():
     moveCount = 0
     status = STATE_CONTINUE
     turn = getWhoMovesFirst()
-
+    turn = 1
     print MSG_WELCOME
     printBoard(board)
 
