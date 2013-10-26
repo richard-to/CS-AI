@@ -18,12 +18,18 @@ public class Pa3 {
     public static final String CONFIG_PROP_CONN_STRING = "connection_string";
 
     public static void main(String[] args) throws IOException {
-        runNormal();
-        //runWithIterativeDeepening();
+        //runNormal();
+        //runThreaded();
+        runWithIterativeDeepening();
     }
 
     public static void runNormal() {
         IComputerAi ai = new AlphaBetaPlayer();
+        GameEngine gameEngine = new GameEngine(ai);
+    }
+
+    public static void runThreaded() {
+        IComputerAi ai = new AlphaBetaPlayerThreaded();
         GameEngine gameEngine = new GameEngine(ai);
     }
 
