@@ -29,8 +29,8 @@ using namespace std;
 #define ALPHA_MIN 0
 #define BETA_MAX 256
 
-#define COST_P1_WIN 32
-#define COST_P2_WIN 128
+#define COST_P1_WIN 128
+#define COST_P2_WIN 32
 #define COST_TIE 64
 
 #define MSG_WELCOME "Welcome to Owari!"
@@ -170,7 +170,7 @@ unsigned int OwariAlphaBetaDIFindMove(unsigned int board[], unsigned int kmoves[
         nextMove = P1_MIN_PIT;
 
         if (bestMove < INVALID_MOVE) {
-            if (makeMoveP1(nextMove, board, newBoard)) {
+            if (makeMoveP1(bestMove, board, newBoard)) {
                 moveValue = OwariAlphaBetaDIMinValue(newBoard, kmoves, alpha, beta, cdepth, mdepth);
                 bestValue = moveValue;
 
@@ -200,13 +200,13 @@ unsigned int OwariAlphaBetaDIFindMove(unsigned int board[], unsigned int kmoves[
 }
 
 unsigned int OwariAlphaBetaDIMaxValue(unsigned int board[], unsigned int kmoves[], unsigned int alpha, unsigned int beta, unsigned int cdepth, unsigned int mdepth) {
-    unsigned int bestValue;
+    unsigned int bestValue = ALPHA_MIN;
     unsigned int moveValue;
     unsigned int newBoard[BOARD_SIZE];
     unsigned int status = checkForWinner(board);
     unsigned int ndepth = cdepth + 1;
     unsigned int killerMove = kmoves[cdepth];
-    unsigned int nextMove;
+    unsigned int nextMove = P1_MIN_PIT;
     if (status == STATE_P1_WIN) {
         return COST_P1_WIN;
     } else if (status == STATE_P2_WIN) {
@@ -216,7 +216,6 @@ unsigned int OwariAlphaBetaDIMaxValue(unsigned int board[], unsigned int kmoves[
     } else if (cdepth == mdepth) {
         return COST_TIE + board[0] + board[1] + board[2] + board[3] + board[4] + board[5] + board[6];
     } else {
-        bestValue = ALPHA_MIN;
         if (killerMove < INVALID_MOVE) {
             if (makeMoveP1(killerMove, board, newBoard)) {
                 moveValue = OwariAlphaBetaDIMinValue(newBoard, kmoves, alpha, beta, ndepth, mdepth);
@@ -231,7 +230,6 @@ unsigned int OwariAlphaBetaDIMaxValue(unsigned int board[], unsigned int kmoves[
                 }
             }
         }
-        nextMove = P1_MIN_PIT;
         for (; nextMove < P1_GOAL_PIT; ++nextMove) {
             if (nextMove != killerMove && makeMoveP1(nextMove, board, newBoard)) {
                 moveValue = OwariAlphaBetaDIMinValue(newBoard, kmoves, alpha, beta, ndepth, mdepth);
@@ -419,7 +417,7 @@ unsigned int getHumanMove(unsigned int board[], unsigned int validPits[]) {
         }
 
         if (validMove == false) {
-            cout << "Pleae select a valid pit!" << endl;
+            cout << "Please select a valid pit!" << endl;
         }
     }
     return move;
@@ -436,11 +434,17 @@ unsigned int getHumanP2Move(unsigned int board[], unsigned int depth) {
 };
 
 void printBoard(unsigned int board[]) {
+    cout << "       |    |  5 |  4 |  3 |  2 |  1 |  0 |    |" << endl;
+    cout << "       |    | 12 | 11 | 10 |  9 |  8 |  7 |    |" << endl;
+    cout << "------------------------------------------------" << endl;
     printf("North: | %2d | %2d | %2d | %2d | %2d | %2d | %2d |    |\n",
         board[13], board[12], board[11], board[10], board[9], board[8], board[7]);
 
     printf("South: |    | %2d | %2d | %2d | %2d | %2d | %2d | %2d |\n",
         board[0], board[1], board[2], board[3], board[4], board[5], board[6]);
+    cout << "------------------------------------------------" << endl;
+    cout << "       |    |  0 |  1 |  2 |  3 |  4 |  5 |    |" << endl;
+    cout << "       |    |  7 |  8 |  9 | 10 | 11 | 12 |    |" << endl;
 }
 
 void printScore(unsigned int board[]) {
@@ -482,8 +486,8 @@ void runOwari() {
         if (turn == PLAYER_1) {
 
             begin = clock();
-            move = OwariAlphaBetaDIFindMove(board, kmoves, maxDepth);
-            //move = OwariAlphaBetaFindMove(board, maxDepth);
+            //move = OwariAlphaBetaDIFindMove(board, kmoves, maxDepth);
+            move = OwariAlphaBetaFindMove(board, maxDepth);
             end = clock();
             cout << "Elapsed time: " << double(end - begin) / CLOCKS_PER_SEC << endl;
             makeMoveP1(move, board, board);
