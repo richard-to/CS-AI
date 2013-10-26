@@ -8,3 +8,4 @@ config.py
 *.pyc
 *.properties
 *.jar
+pa3/cpp/owari
