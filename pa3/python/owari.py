@@ -102,6 +102,13 @@ class OwariAlphaBetaDI(object):
                         bestMove = moveData[2]
                         bestBoard = newBoard
                         moveData[0] = moveValue
+
+                    if bestValue >= beta:
+                        break
+
+                    if bestValue > alpha:
+                        alpha = bestValue
+
         return bestMove
 
     def maxValue(self, board, alpha, beta, cDepth, mDepth):
@@ -273,7 +280,7 @@ def getHumanMove(board, validPits):
 
 def getComputerP1Move(board, depth, evalScore):
     start = time.time()
-    ai = OwariAlphaBetaDI(evalScore)
+    ai = OwariAlphaBeta(evalScore)
     #ai = OwariAlphaBeta(evalScore)
     move = ai.findMove(board, depth)
     print time.time() - start
