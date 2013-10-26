@@ -49,8 +49,8 @@ public class AlphaBetaPlayerID extends Player {
             }
         }
 
-        Thread threadStopperThread = new Thread(new ThreadStopper(threads));
-        threadStopperThread.start();
+        //Thread threadStopperThread = new Thread(new ThreadStopper(threads));
+        //threadStopperThread.start();
 
         checkResult();
     }
