@@ -208,7 +208,7 @@ unsigned int OwariAlphaBetaDIFindMove(unsigned int board[], unsigned int kmoves[
 
 // Modified version of Jenkins One at a Time Hash
 // from: http://en.wikipedia.org/wiki/Jenkins_hash_function
-unsigned int ttable_hasher(unsigned int *key) {
+unsigned int ttable_hasher(unsigned int key[]) {
     unsigned int hash, i;
     for(hash = i = 0; i < 14; ++i)
     {
@@ -219,7 +219,11 @@ unsigned int ttable_hasher(unsigned int *key) {
     hash += (hash << 3);
     hash ^= (hash >> 11);
     hash += (hash << 15);
-    return hash % TTABLE_SIZE;
+    if (hash < TTABLE_SIZE) {
+        return hash;
+    } else {
+        return hash % TTABLE_SIZE;
+    }
 }
 
 unsigned int OwariAlphaBetaDIMaxValue(unsigned int board[], unsigned int kmoves[], unsigned int alpha, unsigned int beta, unsigned int cdepth, unsigned int mdepth) {
@@ -288,6 +292,12 @@ unsigned int OwariAlphaBetaDIMaxValue(unsigned int board[], unsigned int kmoves[
                     alpha = bestValue;
                 }
             }
+        }
+
+        if (mdepth > ttable[hash][14]) {
+            std::copy(&board[0], &board[13], p);
+            ttable[hash][14] = mdepth;
+            ttable[hash][15] = bestValue;
         }
         return bestValue;
     }
