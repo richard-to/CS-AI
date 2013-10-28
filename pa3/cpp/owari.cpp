@@ -38,6 +38,9 @@ using namespace std;
 #define MSG_LOST "Player 1 Lost!"
 #define MSG_TIED "Player 1 Lost!"
 
+#define DEPTH_INCREMENT 5
+#define DEPTH_LOOPS 2
+
 #define TTABLE_SIZE 524287
 #define TTABLE_DATA_LEN 16
 
@@ -179,8 +182,7 @@ bool makeMoveP1(unsigned int move, unsigned int board[], unsigned int newBoard[]
 
 unsigned int OwariAlphaBetaAWFindMove(unsigned int board[], unsigned int kmoves[], unsigned int depth) {
     unsigned int maxDepth = depth + 1;
-    unsigned int mdepth = 8;
-    unsigned int remDepth = 5;
+    unsigned int mdepth = 0;
     unsigned int cdepth = 0;
     unsigned int alpha = ALPHA_MIN;
     unsigned int beta = BETA_MAX;
@@ -190,6 +192,12 @@ unsigned int OwariAlphaBetaAWFindMove(unsigned int board[], unsigned int kmoves[
     unsigned int moveValue;
     unsigned int nextMove;
     unsigned int newBoard[BOARD_SIZE];
+
+    if (depth > DEPTH_INCREMENT * DEPTH_LOOPS) {
+        mdepth = depth - DEPTH_INCREMENT * DEPTH_LOOPS;
+    } else {
+        mdepth = depth;
+    }
 
     while (mdepth < maxDepth) {
         bestValue = ALPHA_MIN;
@@ -224,14 +232,12 @@ unsigned int OwariAlphaBetaAWFindMove(unsigned int board[], unsigned int kmoves[
         kmoves[cdepth] = bestMove;
 
         if (bestValue < alpha) {
-            cout << "FAIL " << alpha << " " << bestValue << endl;
             alpha = ALPHA_MIN;
             beta = BETA_MAX;
         } else {
             alpha = bestValue - window;
             beta = bestValue + window;
-            cout << "SUCCESS " << alpha << " " << beta << " " << bestValue << endl;
-            mdepth += remDepth;
+            mdepth += DEPTH_INCREMENT;
         }
     }
 
@@ -329,8 +335,7 @@ unsigned int OwariAlphaBetaAWMinValue(unsigned int board[], unsigned int kmoves[
 
 unsigned int OwariAlphaBetaTTFindMove(unsigned int board[], unsigned int kmoves[], unsigned int depth) {
     unsigned int maxDepth = depth + 1;
-    unsigned int mdepth = 8;
-    unsigned int remDepth = 5;
+    unsigned int mdepth = 0;
     unsigned int cdepth = 0;
     unsigned int alpha;
     unsigned int beta;
@@ -338,8 +343,14 @@ unsigned int OwariAlphaBetaTTFindMove(unsigned int board[], unsigned int kmoves[
     unsigned int bestMove;
     unsigned int moveValue;
     unsigned int nextMove;
-
     unsigned int newBoard[BOARD_SIZE];
+
+    if (depth > DEPTH_INCREMENT * DEPTH_LOOPS) {
+        mdepth = depth - DEPTH_INCREMENT * DEPTH_LOOPS;
+    } else {
+        mdepth = depth;
+    }
+
     while (mdepth < maxDepth) {
         alpha = ALPHA_MIN;
         bestValue = ALPHA_MIN;
@@ -372,7 +383,7 @@ unsigned int OwariAlphaBetaTTFindMove(unsigned int board[], unsigned int kmoves[
             }
         }
         kmoves[cdepth] = bestMove;
-        mdepth += remDepth;
+        mdepth += DEPTH_INCREMENT;
     }
     return bestMove;
 }
@@ -491,8 +502,7 @@ unsigned int OwariAlphaBetaTTMinValue(unsigned int board[], unsigned int kmoves[
 
 unsigned int OwariAlphaBetaDIFindMove(unsigned int board[], unsigned int kmoves[], unsigned int depth) {
     unsigned int maxDepth = depth + 1;
-    unsigned int mdepth = 8;
-    unsigned int remDepth = 5;
+    unsigned int mdepth = 0;
     unsigned int cdepth = 0;
     unsigned int alpha;
     unsigned int beta;
@@ -500,8 +510,14 @@ unsigned int OwariAlphaBetaDIFindMove(unsigned int board[], unsigned int kmoves[
     unsigned int bestMove;
     unsigned int moveValue;
     unsigned int nextMove;
-
     unsigned int newBoard[BOARD_SIZE];
+
+    if (depth > DEPTH_INCREMENT * DEPTH_LOOPS) {
+        mdepth = depth - DEPTH_INCREMENT * DEPTH_LOOPS;
+    } else {
+        mdepth = depth;
+    }
+
     while (mdepth < maxDepth) {
         alpha = ALPHA_MIN;
         bestValue = ALPHA_MIN;
@@ -534,7 +550,7 @@ unsigned int OwariAlphaBetaDIFindMove(unsigned int board[], unsigned int kmoves[
             }
         }
         kmoves[cdepth] = bestMove;
-        mdepth += remDepth;
+        mdepth += DEPTH_INCREMENT;
     }
     return bestMove;
 }
@@ -800,7 +816,7 @@ void runOwari() {
     clock_t begin;
     clock_t end;
 
-    unsigned int maxDepth = 19;
+    unsigned int maxDepth = 18;
 
     unsigned int kmoves[100];
     unsigned int board[] = {3, 3, 3, 3, 3, 3, 0, 3, 3, 3, 3, 3, 3, 0};
@@ -817,7 +833,6 @@ void runOwari() {
         unsigned int move = INVALID_MOVE;
 
         if (turn == PLAYER_1) {
-
             begin = clock();
             move = OwariAlphaBetaAWFindMove(board, kmoves, maxDepth);
             //move = OwariAlphaBetaDIFindMove(board, kmoves, maxDepth);
