@@ -47,6 +47,27 @@ unsigned int (*ttable)[TTABLE_DATA_LEN] = new unsigned int[TTABLE_SIZE][TTABLE_D
 
 unsigned int OwariAlphaBetaMinValue(unsigned int board[], unsigned int alpha, unsigned int beta, unsigned int cdepth, unsigned int mdepth);
 unsigned int OwariAlphaBetaDIMinValue(unsigned int board[], unsigned int kmoves[], unsigned int alpha, unsigned int beta, unsigned int cdepth, unsigned int mdepth);
+unsigned int OwariAlphaBetaTTMinValue(unsigned int board[], unsigned int kmoves[], unsigned int alpha, unsigned int beta, unsigned int cdepth, unsigned int mdepth);
+
+// Modified version of Jenkins One at a Time Hash
+// from: http://en.wikipedia.org/wiki/Jenkins_hash_function
+unsigned int ttable_hasher(unsigned int key[]) {
+    unsigned int hash, i;
+    for(hash = i = 0; i < 14; ++i)
+    {
+        hash += key[i];
+        hash += (hash << 10);
+        hash ^= (hash >> 6);
+    }
+    hash += (hash << 3);
+    hash ^= (hash >> 11);
+    hash += (hash << 15);
+    if (hash < TTABLE_SIZE) {
+        return hash;
+    } else {
+        return hash % TTABLE_SIZE;
+    }
+}
 
 unsigned int checkForWinner(unsigned int board[]) {
     unsigned int p1score = 0;
@@ -156,10 +177,173 @@ bool makeMoveP1(unsigned int move, unsigned int board[], unsigned int newBoard[]
     return true;
 }
 
+
+unsigned int OwariAlphaBetaTTFindMove(unsigned int board[], unsigned int kmoves[], unsigned int depth) {
+    unsigned int maxDepth = depth + 1;
+    unsigned int mdepth = 8;
+    unsigned int remDepth = 5;
+    unsigned int cdepth = 0;
+    unsigned int alpha;
+    unsigned int beta;
+    unsigned int bestValue;
+    unsigned int bestMove;
+    unsigned int moveValue;
+    unsigned int nextMove;
+
+    unsigned int newBoard[BOARD_SIZE];
+    while (mdepth < maxDepth) {
+        alpha = ALPHA_MIN;
+        bestValue = ALPHA_MIN;
+        beta = BETA_MAX;
+        bestMove = kmoves[cdepth];
+        nextMove = P1_MIN_PIT;
+
+        if (bestMove < INVALID_MOVE) {
+            if (makeMoveP1(bestMove, board, newBoard)) {
+                moveValue = OwariAlphaBetaTTMinValue(newBoard, kmoves, alpha, beta, cdepth, mdepth);
+                bestValue = moveValue;
+
+                if (bestValue > alpha) {
+                    alpha = bestValue;
+                }
+            }
+        }
+
+        for (; nextMove < P1_GOAL_PIT; ++nextMove) {
+            if (nextMove != bestMove && makeMoveP1(nextMove, board, newBoard)) {
+                moveValue = OwariAlphaBetaTTMinValue(newBoard, kmoves, alpha, beta, cdepth, mdepth);
+                if (moveValue > bestValue) {
+                    bestValue = moveValue;
+                    bestMove = nextMove;
+                }
+
+                if (bestValue > alpha) {
+                    alpha = bestValue;
+                }
+            }
+        }
+        kmoves[cdepth] = bestMove;
+        mdepth += remDepth;
+    }
+    return bestMove;
+}
+
+unsigned int OwariAlphaBetaTTMaxValue(unsigned int board[], unsigned int kmoves[], unsigned int alpha, unsigned int beta, unsigned int cdepth, unsigned int mdepth) {
+    unsigned int bestValue = ALPHA_MIN;
+    unsigned int moveValue;
+    unsigned int newBoard[BOARD_SIZE];
+    unsigned int status = checkForWinner(board);
+    unsigned int ndepth = cdepth + 1;
+    unsigned int killerMove = kmoves[cdepth];
+    unsigned int nextMove = P1_MIN_PIT;
+    unsigned int hash = ttable_hasher(board);
+    unsigned int *p = ttable[hash];
+    if (status == STATE_P1_WIN) {
+        return COST_P1_WIN;
+    } else if (status == STATE_P2_WIN) {
+        return COST_P2_WIN;
+    } else if (status == STATE_TIED) {
+        return COST_TIE;
+    } else if (cdepth == mdepth) {
+        return COST_TIE + board[0] + board[1] + board[2] + board[3] + board[4] + board[5] + board[6];
+    } else {
+        if (p[14] >= mdepth &&
+                p[13] == board[13] && p[12] == board[12] &&
+                p[11] == board[11] && p[10] == board[10] &&
+                p[9] == board[9] && p[8] == board[8] &&
+                p[7] == board[7] && p[6] == board[6] &&
+                p[5] == board[5] && p[4] == board[4] &&
+                p[3] == board[3] && p[2] == board[2] &&
+                p[1] == board[1] && p[0] == board[0]) {
+            return p[15];
+        }
+
+        if (killerMove < INVALID_MOVE) {
+            if (makeMoveP1(killerMove, board, newBoard)) {
+                moveValue = OwariAlphaBetaTTMinValue(newBoard, kmoves, alpha, beta, ndepth, mdepth);
+                bestValue = moveValue;
+
+                if (bestValue >= beta) {
+                    return bestValue;
+                }
+
+                if (bestValue > alpha) {
+                    alpha = bestValue;
+                }
+            }
+        }
+        for (; nextMove < P1_GOAL_PIT; ++nextMove) {
+            if (nextMove != killerMove && makeMoveP1(nextMove, board, newBoard)) {
+                moveValue = OwariAlphaBetaTTMinValue(newBoard, kmoves, alpha, beta, ndepth, mdepth);
+                if (moveValue > bestValue) {
+                    bestValue = moveValue;
+                }
+
+                if (bestValue >= beta) {
+                    kmoves[cdepth] = nextMove;
+                    if (mdepth > ttable[hash][14]) {
+                        std::copy(&board[0], &board[13], p);
+                        ttable[hash][14] = mdepth;
+                        ttable[hash][15] = bestValue;
+                    }
+                    return bestValue;
+                }
+
+                if (bestValue > alpha) {
+                    alpha = bestValue;
+                }
+            }
+        }
+
+        if (mdepth > ttable[hash][14]) {
+            std::copy(&board[0], &board[13], p);
+            ttable[hash][14] = mdepth;
+            ttable[hash][15] = bestValue;
+        }
+        return bestValue;
+    }
+}
+
+unsigned int OwariAlphaBetaTTMinValue(unsigned int board[], unsigned int kmoves[], unsigned int alpha, unsigned int beta, unsigned int cdepth, unsigned int mdepth) {
+    unsigned int nextMove = P2_MIN_PIT;
+    unsigned int bestValue = BETA_MAX;
+    unsigned int moveValue = 0;
+    unsigned int newBoard[BOARD_SIZE];
+    unsigned int status = checkForWinner(board);
+    unsigned int ndepth = cdepth + 1;
+    if (status == STATE_P1_WIN) {
+        return COST_P1_WIN;
+    } else if (status == STATE_P2_WIN) {
+        return COST_P2_WIN;
+    } else if (status == STATE_TIED) {
+        return COST_TIE;
+    } else if (cdepth == mdepth) {
+        return COST_TIE - board[7] - board[8] - board[9] - board[10] - board[11] - board[12] - board[13];
+    } else {
+        for (; nextMove < P2_GOAL_PIT; ++nextMove) {
+            if (makeMoveP2(nextMove, board, newBoard)) {
+                moveValue = OwariAlphaBetaTTMaxValue(newBoard, kmoves, alpha, beta, ndepth, mdepth);
+                if (moveValue < bestValue) {
+                    bestValue = moveValue;
+                }
+
+                if (bestValue <= alpha) {
+                    return bestValue;
+                }
+
+                if (bestValue < beta) {
+                    beta = bestValue;
+                }
+            }
+        }
+        return bestValue;
+    }
+}
+
 unsigned int OwariAlphaBetaDIFindMove(unsigned int board[], unsigned int kmoves[], unsigned int depth) {
     unsigned int maxDepth = depth + 1;
     unsigned int mdepth = 8;
-    unsigned int remDepth = 5; //depth - mdepth;
+    unsigned int remDepth = 5;
     unsigned int cdepth = 0;
     unsigned int alpha;
     unsigned int beta;
@@ -206,26 +390,6 @@ unsigned int OwariAlphaBetaDIFindMove(unsigned int board[], unsigned int kmoves[
     return bestMove;
 }
 
-// Modified version of Jenkins One at a Time Hash
-// from: http://en.wikipedia.org/wiki/Jenkins_hash_function
-unsigned int ttable_hasher(unsigned int key[]) {
-    unsigned int hash, i;
-    for(hash = i = 0; i < 14; ++i)
-    {
-        hash += key[i];
-        hash += (hash << 10);
-        hash ^= (hash >> 6);
-    }
-    hash += (hash << 3);
-    hash ^= (hash >> 11);
-    hash += (hash << 15);
-    if (hash < TTABLE_SIZE) {
-        return hash;
-    } else {
-        return hash % TTABLE_SIZE;
-    }
-}
-
 unsigned int OwariAlphaBetaDIMaxValue(unsigned int board[], unsigned int kmoves[], unsigned int alpha, unsigned int beta, unsigned int cdepth, unsigned int mdepth) {
     unsigned int bestValue = ALPHA_MIN;
     unsigned int moveValue;
@@ -234,8 +398,6 @@ unsigned int OwariAlphaBetaDIMaxValue(unsigned int board[], unsigned int kmoves[
     unsigned int ndepth = cdepth + 1;
     unsigned int killerMove = kmoves[cdepth];
     unsigned int nextMove = P1_MIN_PIT;
-    unsigned int hash = ttable_hasher(board);
-    unsigned int *p = ttable[hash];
     if (status == STATE_P1_WIN) {
         return COST_P1_WIN;
     } else if (status == STATE_P2_WIN) {
@@ -245,18 +407,6 @@ unsigned int OwariAlphaBetaDIMaxValue(unsigned int board[], unsigned int kmoves[
     } else if (cdepth == mdepth) {
         return COST_TIE + board[0] + board[1] + board[2] + board[3] + board[4] + board[5] + board[6];
     } else {
-        if (p[15] > 0) {
-            if (p[14] >= mdepth && p[0] == board[0] && p[1] == board[1] &&
-                    p[2] == board[2] && p[3] == board[3] &&
-                    p[4] == board[4] && p[5] == board[5] &&
-                    p[6] == board[6] && p[7] == board[7] &&
-                    p[8] == board[8] && p[9] == board[9] &&
-                    p[10] == board[10] && p[11] == board[11] &&
-                    p[12] == board[12] && p[13] == board[13]) {
-                return p[15];
-            }
-        }
-
         if (killerMove < INVALID_MOVE) {
             if (makeMoveP1(killerMove, board, newBoard)) {
                 moveValue = OwariAlphaBetaDIMinValue(newBoard, kmoves, alpha, beta, ndepth, mdepth);
@@ -280,11 +430,6 @@ unsigned int OwariAlphaBetaDIMaxValue(unsigned int board[], unsigned int kmoves[
 
                 if (bestValue >= beta) {
                     kmoves[cdepth] = nextMove;
-                    if (mdepth > ttable[hash][14]) {
-                        std::copy(&board[0], &board[13], p);
-                        ttable[hash][14] = mdepth;
-                        ttable[hash][15] = bestValue;
-                    }
                     return bestValue;
                 }
 
@@ -292,12 +437,6 @@ unsigned int OwariAlphaBetaDIMaxValue(unsigned int board[], unsigned int kmoves[
                     alpha = bestValue;
                 }
             }
-        }
-
-        if (mdepth > ttable[hash][14]) {
-            std::copy(&board[0], &board[13], p);
-            ttable[hash][14] = mdepth;
-            ttable[hash][15] = bestValue;
         }
         return bestValue;
     }
@@ -371,7 +510,6 @@ unsigned int OwariAlphaBetaMaxValue(unsigned int board[], unsigned int alpha, un
     unsigned int nextMove = P1_MIN_PIT;
     unsigned int bestValue = ALPHA_MIN;
     unsigned int moveValue = 0;
-    bool moveResult = false;
     unsigned int newBoard[BOARD_SIZE];
     unsigned int status = checkForWinner(board);
     unsigned int ndepth = cdepth + 1;
@@ -408,7 +546,6 @@ unsigned int OwariAlphaBetaMinValue(unsigned int board[], unsigned int alpha, un
     unsigned int nextMove = P2_MIN_PIT;
     unsigned int bestValue = BETA_MAX;
     unsigned int moveValue = 0;
-    bool moveResult = false;
     unsigned int newBoard[BOARD_SIZE];
     unsigned int status = checkForWinner(board);
     unsigned int ndepth = cdepth + 1;
@@ -536,6 +673,7 @@ void runOwari() {
 
             begin = clock();
             move = OwariAlphaBetaDIFindMove(board, kmoves, maxDepth);
+            //move = OwariAlphaBetaTTFindMove(board, kmoves, maxDepth);
             //move = OwariAlphaBetaFindMove(board, maxDepth);
             end = clock();
             cout << "Elapsed time: " << double(end - begin) / CLOCKS_PER_SEC << endl;
