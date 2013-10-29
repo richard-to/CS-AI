@@ -35,8 +35,8 @@ using namespace std;
 
 #define MSG_WELCOME "Welcome to Owari!"
 #define MSG_WIN "Player 1 Won!"
-#define MSG_LOST "Player 1 Lost!"
-#define MSG_TIED "Player 1 Lost!"
+#define MSG_LOST "Player 2 Won!"
+#define MSG_TIED "Tie Game!"
 
 #define DEPTH_INCREMENT 5
 #define DEPTH_LOOPS 2
@@ -129,7 +129,11 @@ bool makeMoveP2(unsigned int move, unsigned int board[], unsigned int newBoard[]
             move = 0;
         }
     }
-    ++newBoard[move];
+	if (move == P1_GOAL_PIT) {
+		++newBoard[++move];
+	} else {
+		++newBoard[move];
+	}
     if (move > P1_GOAL_PIT && move < P2_GOAL_PIT && newBoard[move] < 2) {
         newBoard[P2_GOAL_PIT] += newBoard[P2_MAX_PIT - move];
         newBoard[P2_MAX_PIT - move] = 0;
@@ -160,7 +164,7 @@ bool makeMoveP1(unsigned int move, unsigned int board[], unsigned int newBoard[]
     unsigned int seeds = newBoard[move];
     newBoard[move] = 0;
     ++move;
-    if (move > P2_GOAL_PIT) {
+    if (move > P2_MAX_PIT) {
         move = 0;
     }
     while (seeds > 1) {
@@ -810,21 +814,41 @@ void printStatus(unsigned int board[], unsigned int move, unsigned int turn, uns
     printScore(board);
 }
 
+void reverseBoard(unsigned int board[], unsigned int rboard[]) {
+	rboard[0] = board[7];
+	rboard[1] = board[8];
+	rboard[2] = board[9];
+	rboard[3] = board[10];
+	rboard[4] = board[11];
+	rboard[5] = board[12];
+	rboard[6] = board[13];
+	rboard[7] = board[0];
+	rboard[8] = board[1];
+	rboard[9] = board[2];
+	rboard[10] = board[3];
+	rboard[11] = board[4];
+	rboard[12] = board[5];
+	rboard[13] = board[6];
+}
+
 void runOwari() {
     srand(time(NULL));
 
     clock_t begin;
     clock_t end;
 
-    unsigned int maxDepth = 18;
-
-    unsigned int kmoves[100];
+    unsigned int p1mdepth = 21;
+	unsigned int p2mdepth = 20;
+    unsigned int p1kmoves[100];
+	unsigned int p2kmoves[100];
     unsigned int board[] = {3, 3, 3, 3, 3, 3, 0, 3, 3, 3, 3, 3, 3, 0};
+	unsigned int rboard[] = {3, 3, 3, 3, 3, 3, 0, 3, 3, 3, 3, 3, 3, 0};
     unsigned int moveCount = 0;
-    unsigned int turn = 0;
+    unsigned int turn = 1;
     unsigned int status = STATE_CONTINUE;
 
-    fill(kmoves, kmoves+100, INVALID_MOVE);
+    fill(p1kmoves, p1kmoves + 100, INVALID_MOVE);
+    fill(p2kmoves, p2kmoves + 100, INVALID_MOVE);
 
     cout << MSG_WELCOME << endl;
     printBoard(board);
@@ -834,15 +858,19 @@ void runOwari() {
 
         if (turn == PLAYER_1) {
             begin = clock();
-            move = OwariAlphaBetaAWFindMove(board, kmoves, maxDepth);
-            //move = OwariAlphaBetaDIFindMove(board, kmoves, maxDepth);
-            //move = OwariAlphaBetaTTFindMove(board, kmoves, maxDepth);
-            //move = OwariAlphaBetaFindMove(board, maxDepth);
+			move = OwariAlphaBetaAWFindMove(board, p1kmoves, p1mdepth);
             end = clock();
             cout << "Elapsed time: " << double(end - begin) / CLOCKS_PER_SEC << endl;
             makeMoveP1(move, board, board);
         } else {
-            move = getHumanP2Move(board, maxDepth);
+			begin = clock();
+			reverseBoard(board, rboard);
+			move = P2_MIN_PIT + OwariAlphaBetaDIFindMove(rboard, p2kmoves, p2mdepth);
+			//move = P2_MIN_PIT + OwariAlphaBetaAWFindMove(rboard, p2kmoves, p2mdepth);
+			reverseBoard(rboard, board);
+            end = clock();
+            cout << "Elapsed time: " << double(end - begin) / CLOCKS_PER_SEC << endl;
+            //move = getHumanP2Move(board, maxDepth);
             makeMoveP2(move, board, board);
         }
 
