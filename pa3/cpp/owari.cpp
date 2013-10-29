@@ -52,10 +52,11 @@ unsigned int (*ttable)[TTABLE_DATA_LEN] = new unsigned int[TTABLE_SIZE][TTABLE_D
 unsigned int OwariAlphaBetaMinValue(unsigned int board[], unsigned int alpha, unsigned int beta, unsigned int cdepth, unsigned int mdepth);
 unsigned int OwariAlphaBetaDIMinValue(unsigned int board[], unsigned int kmoves[], unsigned int alpha, unsigned int beta, unsigned int cdepth, unsigned int mdepth);
 unsigned int OwariAlphaBetaTTMinValue(unsigned int board[], unsigned int kmoves[], unsigned int alpha, unsigned int beta, unsigned int cdepth, unsigned int mdepth);
-unsigned int OwariAlphaBetaAWMinValue(unsigned int board[], unsigned int kmoves[], unsigned int alpha, unsigned int beta, unsigned int cdepth, unsigned int mdepth);
 
-// Modified version of Jenkins One at a Time Hash
-// from: http://en.wikipedia.org/wiki/Jenkins_hash_function
+// Hash function for transposition table. Uses a modified version of
+// Jenkins One at a Time Hash from: http://en.wikipedia.org/wiki/Jenkins_hash_function.
+// The main modification is passing in an unsigned int array. Additionally,
+// the modulus step for the hash to table is combined here
 unsigned int ttable_hasher(unsigned int key[]) {
     unsigned int hash, i;
     for (hash = i = 0; i < 14; ++i) {
@@ -74,6 +75,9 @@ unsigned int ttable_hasher(unsigned int key[]) {
     }
 }
 
+// Checks the board for a winner
+// A winner is declared when one side has no more seeds.
+// The winner is the one with the most seeds.
 unsigned int checkForWinner(unsigned int board[]) {
     unsigned int p1score = 0;
     unsigned int p2score = 0;
@@ -95,6 +99,12 @@ unsigned int checkForWinner(unsigned int board[]) {
     }
 }
 
+// Make a move for player 2. For speed this function does minimal validation of
+// valid moves. The only case that we really check is if the selected pit has no
+// seeds left. This is necessary for running alpha-beta or minimax algorithms.
+//
+// For P2, we distribute seeds in a counter-clockwise manner and skip P1's goal
+// pit. If P2 lands on an empty pit that it owns, we can take the adjacent seeds.
 bool makeMoveP2(unsigned int move, unsigned int board[], unsigned int newBoard[]) {
     if (board[move] == 0) {
         return false;
@@ -143,6 +153,12 @@ bool makeMoveP2(unsigned int move, unsigned int board[], unsigned int newBoard[]
     return true;
 }
 
+// Make a move for player 1. For speed this function does minimal validation of
+// valid moves. The only case that we really check is if the selected pit has no
+// seeds left. This is necessary for running alpha-beta or minimax algorithms.
+//
+// For P1, we distribute seeds in a counter-clockwise manner and skip P2's goal
+// pit. If P1 lands on an empty pit that it owns, we can take the adjacent seeds.
 bool makeMoveP1(unsigned int move, unsigned int board[], unsigned int newBoard[]) {
     if (board[move] == 0) {
         return false;
@@ -186,6 +202,12 @@ bool makeMoveP1(unsigned int move, unsigned int board[], unsigned int newBoard[]
     return true;
 }
 
+// Implementation of Alpha Beta with Aspiration Windows. Essentially the same as the
+// the version with Iterative Deepening and Killer move heuristic.
+//
+// Basically adjust the window on each iteration based on the best value found.
+// For instance, if the best value is 40 and the window is 5, then alpha equals 40 - 5 and
+// beta equals 40 + 5.
 unsigned int OwariAlphaBetaAWFindMove(unsigned int board[], unsigned int kmoves[], unsigned int depth) {
     unsigned int maxDepth = depth + 1;
     unsigned int mdepth = 0;
@@ -212,7 +234,7 @@ unsigned int OwariAlphaBetaAWFindMove(unsigned int board[], unsigned int kmoves[
 
         if (bestMove < INVALID_MOVE) {
             if (makeMoveP1(bestMove, board, newBoard)) {
-                moveValue = OwariAlphaBetaAWMinValue(newBoard, kmoves, alpha, beta, cdepth, mdepth);
+                moveValue = OwariAlphaBetaDIMinValue(newBoard, kmoves, alpha, beta, cdepth, mdepth);
                 bestValue = moveValue;
                 if (bestValue > alpha) {
                     alpha = bestValue;
@@ -222,7 +244,7 @@ unsigned int OwariAlphaBetaAWFindMove(unsigned int board[], unsigned int kmoves[
 
         for (; nextMove < P1_GOAL_PIT; ++nextMove) {
             if (nextMove != bestMove && makeMoveP1(nextMove, board, newBoard)) {
-                moveValue = OwariAlphaBetaAWMinValue(newBoard, kmoves, alpha, beta, cdepth, mdepth);
+                moveValue = OwariAlphaBetaDIMinValue(newBoard, kmoves, alpha, beta, cdepth, mdepth);
                 if (moveValue > bestValue) {
                     bestValue = moveValue;
                     bestMove = nextMove;
@@ -249,95 +271,9 @@ unsigned int OwariAlphaBetaAWFindMove(unsigned int board[], unsigned int kmoves[
     return bestMove;
 }
 
-unsigned int OwariAlphaBetaAWMaxValue(unsigned int board[], unsigned int kmoves[], unsigned int alpha, unsigned int beta, unsigned int cdepth, unsigned int mdepth) {
-    unsigned int bestValue = ALPHA_MIN;
-    unsigned int moveValue;
-    unsigned int newBoard[BOARD_SIZE];
-    unsigned int status = checkForWinner(board);
-    unsigned int ndepth = cdepth + 1;
-    unsigned int killerMove = kmoves[cdepth];
-    unsigned int nextMove = P1_MIN_PIT;
-    if (status == STATE_P1_WIN) {
-        return COST_P1_WIN;
-    } else if (status == STATE_P2_WIN) {
-        return COST_P2_WIN;
-    } else if (status == STATE_TIED) {
-        return COST_TIE;
-    } else if (cdepth == mdepth) {
-        return COST_TIE + board[0] + board[1] + board[2] + board[3] + board[4] + board[5] + board[6] - 18;
-    } else {
-        if (killerMove < INVALID_MOVE) {
-            if (makeMoveP1(killerMove, board, newBoard)) {
-                moveValue = OwariAlphaBetaAWMinValue(newBoard, kmoves, alpha, beta, ndepth, mdepth);
-                bestValue = moveValue;
-
-                if (bestValue >= beta) {
-                    return bestValue;
-                }
-
-                if (bestValue > alpha) {
-                    alpha = bestValue;
-                }
-            }
-        }
-        for (; nextMove < P1_GOAL_PIT; ++nextMove) {
-            if (nextMove != killerMove && makeMoveP1(nextMove, board, newBoard)) {
-                moveValue = OwariAlphaBetaAWMinValue(newBoard, kmoves, alpha, beta, ndepth, mdepth);
-                if (moveValue > bestValue) {
-                    bestValue = moveValue;
-                }
-
-                if (bestValue >= beta) {
-                    kmoves[cdepth] = nextMove;
-                    return bestValue;
-                }
-
-                if (bestValue > alpha) {
-                    alpha = bestValue;
-                }
-            }
-        }
-        return bestValue;
-    }
-}
-
-unsigned int OwariAlphaBetaAWMinValue(unsigned int board[], unsigned int kmoves[], unsigned int alpha, unsigned int beta, unsigned int cdepth, unsigned int mdepth) {
-    unsigned int nextMove = P2_MIN_PIT;
-    unsigned int bestValue = BETA_MAX;
-    unsigned int moveValue;
-    unsigned int newBoard[BOARD_SIZE];
-    unsigned int status = checkForWinner(board);
-    unsigned int ndepth = cdepth + 1;
-    if (status == STATE_P1_WIN) {
-        return COST_P1_WIN;
-    } else if (status == STATE_P2_WIN) {
-        return COST_P2_WIN;
-    } else if (status == STATE_TIED) {
-        return COST_TIE;
-    } else if (cdepth == mdepth) {
-        return COST_TIE + board[0] + board[1] + board[2] + board[3] + board[4] + board[5] + board[6] - SEEDS_TIE;
-    } else {
-        for (; nextMove < P2_GOAL_PIT; ++nextMove) {
-            if (makeMoveP2(nextMove, board, newBoard)) {
-                moveValue = OwariAlphaBetaAWMaxValue(newBoard, kmoves, alpha, beta, ndepth, mdepth);
-                if (moveValue < bestValue) {
-                    bestValue = moveValue;
-                }
-
-                if (bestValue <= alpha) {
-                    return bestValue;
-                }
-
-                if (bestValue < beta) {
-                    beta = bestValue;
-                }
-            }
-        }
-        return bestValue;
-    }
-}
-
-
+// Failed implementation of Alpha Beta using a transposition table. Not much to
+// say here since this basically a copy and paste of the iterative deepening function.
+// Only difference is we call the transposition table versions of the min and max functions.
 unsigned int OwariAlphaBetaTTFindMove(unsigned int board[], unsigned int kmoves[], unsigned int depth) {
     unsigned int maxDepth = depth + 1;
     unsigned int mdepth = 0;
@@ -393,6 +329,13 @@ unsigned int OwariAlphaBetaTTFindMove(unsigned int board[], unsigned int kmoves[
     return bestMove;
 }
 
+// Alpha Beta max value function implementation that uses a transposition table.
+// Again, basically the same as the iterative deepening version, except we need to
+// check if the board state is in the cache and at the appropriate depth. If it is
+// we will stop here and use that value instead.
+//
+// Additionally we will store the best value and depth all our branches have returned or
+// we hit a cut off.
 unsigned int OwariAlphaBetaTTMaxValue(unsigned int board[], unsigned int kmoves[], unsigned int alpha, unsigned int beta, unsigned int cdepth, unsigned int mdepth) {
     unsigned int bestValue = ALPHA_MIN;
     unsigned int moveValue;
@@ -469,6 +412,8 @@ unsigned int OwariAlphaBetaTTMaxValue(unsigned int board[], unsigned int kmoves[
     }
 }
 
+// Baisically the same function as the regular min value function except we call the
+// transposition table version of max.
 unsigned int OwariAlphaBetaTTMinValue(unsigned int board[], unsigned int kmoves[], unsigned int alpha, unsigned int beta, unsigned int cdepth, unsigned int mdepth) {
     unsigned int nextMove = P2_MIN_PIT;
     unsigned int bestValue = BETA_MAX;
@@ -505,6 +450,15 @@ unsigned int OwariAlphaBetaTTMinValue(unsigned int board[], unsigned int kmoves[
     }
 }
 
+// Iterative Deepening version of alpha beta with killer move heuristic
+//
+// For the iterative deepening we don't do increment by increase by one ply. Instead we
+// will do three iterations. The first will be depth - 10, then depth - 5, and finally depth.
+// This seems to work well, maybe due to the number of branches to take. More fine grained incrementing
+// tends to be slower.
+//
+// Killer move heuristic is also implemented. We only store one best move for each depth. Basically
+// we will try the killer move first before attempting the other moves.
 unsigned int OwariAlphaBetaDIFindMove(unsigned int board[], unsigned int kmoves[], unsigned int depth) {
     unsigned int maxDepth = depth + 1;
     unsigned int mdepth = 0;
@@ -560,6 +514,8 @@ unsigned int OwariAlphaBetaDIFindMove(unsigned int board[], unsigned int kmoves[
     return bestMove;
 }
 
+// This version of max basically adds the killer move heuristic. This is only used on max.
+// For some reason we some slow down if we implement use this on min too.
 unsigned int OwariAlphaBetaDIMaxValue(unsigned int board[], unsigned int kmoves[], unsigned int alpha, unsigned int beta, unsigned int cdepth, unsigned int mdepth) {
     unsigned int bestValue = ALPHA_MIN;
     unsigned int moveValue;
@@ -612,6 +568,8 @@ unsigned int OwariAlphaBetaDIMaxValue(unsigned int board[], unsigned int kmoves[
     }
 }
 
+// Basically the regular alpha beta version of min with th exception that we call the
+// iterative deepening version of max.
 unsigned int OwariAlphaBetaDIMinValue(unsigned int board[], unsigned int kmoves[], unsigned int alpha, unsigned int beta, unsigned int cdepth, unsigned int mdepth) {
     unsigned int nextMove = P2_MIN_PIT;
     unsigned int bestValue = BETA_MAX;
@@ -648,6 +606,7 @@ unsigned int OwariAlphaBetaDIMinValue(unsigned int board[], unsigned int kmoves[
     }
 }
 
+// Baseline alpha beta version for performance comparison
 unsigned int OwariAlphaBetaFindMove(unsigned int board[], unsigned int depth) {
     unsigned int alpha = ALPHA_MIN;
     unsigned int beta = BETA_MAX;
@@ -676,6 +635,7 @@ unsigned int OwariAlphaBetaFindMove(unsigned int board[], unsigned int depth) {
     return bestMove;
 }
 
+// Baseline alpha beta version max value function
 unsigned int OwariAlphaBetaMaxValue(unsigned int board[], unsigned int alpha, unsigned int beta, unsigned int cdepth, unsigned int mdepth) {
     unsigned int nextMove = P1_MIN_PIT;
     unsigned int bestValue = ALPHA_MIN;
@@ -712,6 +672,7 @@ unsigned int OwariAlphaBetaMaxValue(unsigned int board[], unsigned int alpha, un
     }
 }
 
+// Baseline alpha beta version min value function
 unsigned int OwariAlphaBetaMinValue(unsigned int board[], unsigned int alpha, unsigned int beta, unsigned int cdepth, unsigned int mdepth) {
     unsigned int nextMove = P2_MIN_PIT;
     unsigned int bestValue = BETA_MAX;
@@ -748,6 +709,8 @@ unsigned int OwariAlphaBetaMinValue(unsigned int board[], unsigned int alpha, un
     }
 }
 
+// A basic way to select who goes first. Press any value other than 2
+// will default to player 1 going first.
 unsigned int getWhoMovesFirst() {
     unsigned int input = 0;
     cout << "Who is going first? (1/2): ";
@@ -760,6 +723,13 @@ unsigned int getWhoMovesFirst() {
     return input;
 }
 
+// This functions gets the user input for what move to select.
+//
+// There is a quick hack to allow the user to change the search depth in
+// in mid-game. This can be done by specifying a value over 100.
+//
+// The depth will then be calculated by taking the input modulus 100. Probably
+// shouldn't go here, but it works for now.
 unsigned int getHumanMove(unsigned int board[], unsigned int validPits[]) {
     bool validMove = false;
     unsigned int i = 0;
@@ -799,6 +769,8 @@ unsigned int getHumanP2Move(unsigned int board[], unsigned int depth) {
     return getHumanMove(board, validPits);
 };
 
+// Print board state. It is a bit hard to read and is confusing. Mainly
+// formatted like this for in-class tournament.
 void printBoard(unsigned int board[]) {
     cout << "       |    |  5 |  4 |  3 |  2 |  1 |  0 |    |" << endl;
     cout << "       |    | 12 | 11 | 10 |  9 |  8 |  7 |    |" << endl;
@@ -827,6 +799,9 @@ void printStatus(unsigned int board[], unsigned int move, unsigned int turn, uns
     printScore(board);
 }
 
+// For matches where it is computer versus computer, we need to
+// flip the board since the alpha-beta implementations assume the
+// computer is always player 1 or south.
 void reverseBoard(unsigned int board[], unsigned int rboard[]) {
     rboard[0] = board[7];
     rboard[1] = board[8];
@@ -844,6 +819,8 @@ void reverseBoard(unsigned int board[], unsigned int rboard[]) {
     rboard[13] = board[6];
 }
 
+// Main game loop implementation. Needs to be cleaned up, but good
+// enough for now.
 void runOwari() {
     srand(time(NULL));
 
@@ -877,8 +854,8 @@ void runOwari() {
 
         if (turn == PLAYER_1) {
             begin = clock();
-            move = OwariAlphaBetaDIFindMove(board, p1kmoves, p1mdepth);
-            //move = OwariAlphaBetaAWFindMove(board, p1kmoves, p1mdepth);
+            //move = OwariAlphaBetaDIFindMove(board, p1kmoves, p1mdepth);
+            move = OwariAlphaBetaAWFindMove(board, p1kmoves, p1mdepth);
             end = clock();
             cout << "Elapsed time: " << double(end - begin) / CLOCKS_PER_SEC << endl;
             makeMoveP1(move, board, board);
