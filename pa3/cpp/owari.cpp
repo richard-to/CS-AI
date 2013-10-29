@@ -50,7 +50,7 @@ unsigned int *cachehit = new unsigned int;
 unsigned int (*ttable)[TTABLE_DATA_LEN] = new unsigned int[TTABLE_SIZE][TTABLE_DATA_LEN];
 
 unsigned int OwariAlphaBetaMinValue(unsigned int board[], unsigned int alpha, unsigned int beta, unsigned int cdepth, unsigned int mdepth);
-unsigned int OwariAlphaBetaDIMinValue(unsigned int board[], unsigned int kmoves[], unsigned int alpha, unsigned int beta, unsigned int cdepth, unsigned int mdepth);
+unsigned int OwariAlphaBetaIDMinValue(unsigned int board[], unsigned int kmoves[], unsigned int alpha, unsigned int beta, unsigned int cdepth, unsigned int mdepth);
 unsigned int OwariAlphaBetaTTMinValue(unsigned int board[], unsigned int kmoves[], unsigned int alpha, unsigned int beta, unsigned int cdepth, unsigned int mdepth);
 
 // Hash function for transposition table. Uses a modified version of
@@ -234,7 +234,7 @@ unsigned int OwariAlphaBetaAWFindMove(unsigned int board[], unsigned int kmoves[
 
         if (bestMove < INVALID_MOVE) {
             if (makeMoveP1(bestMove, board, newBoard)) {
-                moveValue = OwariAlphaBetaDIMinValue(newBoard, kmoves, alpha, beta, cdepth, mdepth);
+                moveValue = OwariAlphaBetaIDMinValue(newBoard, kmoves, alpha, beta, cdepth, mdepth);
                 bestValue = moveValue;
                 if (bestValue > alpha) {
                     alpha = bestValue;
@@ -244,7 +244,7 @@ unsigned int OwariAlphaBetaAWFindMove(unsigned int board[], unsigned int kmoves[
 
         for (; nextMove < P1_GOAL_PIT; ++nextMove) {
             if (nextMove != bestMove && makeMoveP1(nextMove, board, newBoard)) {
-                moveValue = OwariAlphaBetaDIMinValue(newBoard, kmoves, alpha, beta, cdepth, mdepth);
+                moveValue = OwariAlphaBetaIDMinValue(newBoard, kmoves, alpha, beta, cdepth, mdepth);
                 if (moveValue > bestValue) {
                     bestValue = moveValue;
                     bestMove = nextMove;
@@ -461,7 +461,7 @@ unsigned int OwariAlphaBetaTTMinValue(unsigned int board[], unsigned int kmoves[
 //
 // Killer move heuristic is also implemented. We only store one best move for each depth. Basically
 // we will try the killer move first before attempting the other moves.
-unsigned int OwariAlphaBetaDIFindMove(unsigned int board[], unsigned int kmoves[], unsigned int depth) {
+unsigned int OwariAlphaBetaIDFindMove(unsigned int board[], unsigned int kmoves[], unsigned int depth) {
     unsigned int maxDepth = depth + 1;
     unsigned int mdepth = 0;
     unsigned int cdepth = 0;
@@ -488,7 +488,7 @@ unsigned int OwariAlphaBetaDIFindMove(unsigned int board[], unsigned int kmoves[
 
         if (bestMove < INVALID_MOVE) {
             if (makeMoveP1(bestMove, board, newBoard)) {
-                moveValue = OwariAlphaBetaDIMinValue(newBoard, kmoves, alpha, beta, cdepth, mdepth);
+                moveValue = OwariAlphaBetaIDMinValue(newBoard, kmoves, alpha, beta, cdepth, mdepth);
                 bestValue = moveValue;
 
                 if (bestValue > alpha) {
@@ -499,7 +499,7 @@ unsigned int OwariAlphaBetaDIFindMove(unsigned int board[], unsigned int kmoves[
 
         for (; nextMove < P1_GOAL_PIT; ++nextMove) {
             if (nextMove != bestMove && makeMoveP1(nextMove, board, newBoard)) {
-                moveValue = OwariAlphaBetaDIMinValue(newBoard, kmoves, alpha, beta, cdepth, mdepth);
+                moveValue = OwariAlphaBetaIDMinValue(newBoard, kmoves, alpha, beta, cdepth, mdepth);
                 if (moveValue > bestValue) {
                     bestValue = moveValue;
                     bestMove = nextMove;
@@ -518,7 +518,7 @@ unsigned int OwariAlphaBetaDIFindMove(unsigned int board[], unsigned int kmoves[
 
 // This version of max basically adds the killer move heuristic. This is only used on max.
 // For some reason we some slow down if we implement use this on min too.
-unsigned int OwariAlphaBetaDIMaxValue(unsigned int board[], unsigned int kmoves[], unsigned int alpha, unsigned int beta, unsigned int cdepth, unsigned int mdepth) {
+unsigned int OwariAlphaBetaIDMaxValue(unsigned int board[], unsigned int kmoves[], unsigned int alpha, unsigned int beta, unsigned int cdepth, unsigned int mdepth) {
     unsigned int bestValue = ALPHA_MIN;
     unsigned int moveValue;
     unsigned int newBoard[BOARD_SIZE];
@@ -538,7 +538,7 @@ unsigned int OwariAlphaBetaDIMaxValue(unsigned int board[], unsigned int kmoves[
     } else {
         if (killerMove < INVALID_MOVE) {
             if (makeMoveP1(killerMove, board, newBoard)) {
-                moveValue = OwariAlphaBetaDIMinValue(newBoard, kmoves, alpha, beta, ndepth, mdepth);
+                moveValue = OwariAlphaBetaIDMinValue(newBoard, kmoves, alpha, beta, ndepth, mdepth);
                 bestValue = moveValue;
 
                 if (bestValue >= beta) {
@@ -552,7 +552,7 @@ unsigned int OwariAlphaBetaDIMaxValue(unsigned int board[], unsigned int kmoves[
         }
         for (; nextMove < P1_GOAL_PIT; ++nextMove) {
             if (nextMove != killerMove && makeMoveP1(nextMove, board, newBoard)) {
-                moveValue = OwariAlphaBetaDIMinValue(newBoard, kmoves, alpha, beta, ndepth, mdepth);
+                moveValue = OwariAlphaBetaIDMinValue(newBoard, kmoves, alpha, beta, ndepth, mdepth);
                 if (moveValue > bestValue) {
                     bestValue = moveValue;
                 }
@@ -573,7 +573,7 @@ unsigned int OwariAlphaBetaDIMaxValue(unsigned int board[], unsigned int kmoves[
 
 // Basically the regular alpha beta version of min with th exception that we call the
 // iterative deepening version of max.
-unsigned int OwariAlphaBetaDIMinValue(unsigned int board[], unsigned int kmoves[], unsigned int alpha, unsigned int beta, unsigned int cdepth, unsigned int mdepth) {
+unsigned int OwariAlphaBetaIDMinValue(unsigned int board[], unsigned int kmoves[], unsigned int alpha, unsigned int beta, unsigned int cdepth, unsigned int mdepth) {
     unsigned int nextMove = P2_MIN_PIT;
     unsigned int bestValue = BETA_MAX;
     unsigned int moveValue;
@@ -592,7 +592,7 @@ unsigned int OwariAlphaBetaDIMinValue(unsigned int board[], unsigned int kmoves[
     } else {
         for (; nextMove < P2_GOAL_PIT; ++nextMove) {
             if (makeMoveP2(nextMove, board, newBoard)) {
-                moveValue = OwariAlphaBetaDIMaxValue(newBoard, kmoves, alpha, beta, ndepth, mdepth);
+                moveValue = OwariAlphaBetaIDMaxValue(newBoard, kmoves, alpha, beta, ndepth, mdepth);
                 if (moveValue < bestValue) {
                     bestValue = moveValue;
                 }
@@ -835,7 +835,7 @@ void runOwari() {
 
     bool invalidMove = true;
 
-    unsigned int p1mdepth = 19;
+    unsigned int p1mdepth = 20;
     unsigned int p2mdepth = 19;
     unsigned int p1kmoves[100];
     unsigned int p2kmoves[100];
@@ -860,8 +860,8 @@ void runOwari() {
 
         if (turn == PLAYER_1) {
             begin = clock();
-            move = OwariAlphaBetaDIFindMove(board, p1kmoves, p1mdepth);
-            //move = OwariAlphaBetaAWFindMove(board, p1kmoves, p1mdepth);
+            move = OwariAlphaBetaIDFindMove(board, p1kmoves, p1mdepth);
+            move = OwariAlphaBetaAWFindMove(board, p1kmoves, p1mdepth);
             end = clock();
             cout << "Elapsed time: " << double(end - begin) / CLOCKS_PER_SEC << endl;
             makeMoveP1(move, board, board);
@@ -870,7 +870,7 @@ void runOwari() {
             /*
             begin = clock();
             reverseBoard(board, rboard);
-            move = P2_MIN_PIT + OwariAlphaBetaDIFindMove(rboard, p2kmoves, p2mdepth);
+            move = P2_MIN_PIT + OwariAlphaBetaIDFindMove(rboard, p2kmoves, p2mdepth);
             //move = P2_MIN_PIT + OwariAlphaBetaAWFindMove(rboard, p2kmoves, p2mdepth);
             reverseBoard(rboard, board);
             end = clock();
