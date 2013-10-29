@@ -29,8 +29,8 @@ using namespace std;
 #define ALPHA_MIN 0
 #define BETA_MAX 128
 
-#define COST_P1_WIN 84
-#define COST_P2_WIN 44
+#define COST_P1_WIN 100
+#define COST_P2_WIN 28
 #define COST_TIE 64
 
 #define SEEDS_TIE 18
@@ -353,7 +353,8 @@ unsigned int OwariAlphaBetaTTMaxValue(unsigned int board[], unsigned int kmoves[
     } else if (status == STATE_TIED) {
         return COST_TIE;
     } else if (cdepth == mdepth) {
-        return COST_TIE + board[0] + board[1] + board[2] + board[3] + board[4] + board[5] + board[6] - SEEDS_TIE;
+        return COST_TIE + board[0] + board[1] + board[2] + board[3] + board[4] + board[5] + board[6] -
+            board[7] - board[8] - board[9] - board[10] - board[11] - board[12] - board[13];
     } else {
         if (p[14] >= mdepth &&
                 p[13] == board[13] && p[12] == board[12] &&
@@ -428,7 +429,8 @@ unsigned int OwariAlphaBetaTTMinValue(unsigned int board[], unsigned int kmoves[
     } else if (status == STATE_TIED) {
         return COST_TIE;
     } else if (cdepth == mdepth) {
-        return COST_TIE + board[0] + board[1] + board[2] + board[3] + board[4] + board[5] + board[6] - SEEDS_TIE;
+        return COST_TIE + board[0] + board[1] + board[2] + board[3] + board[4] + board[5] + board[6] -
+            board[7] - board[8] - board[9] - board[10] - board[11] - board[12] - board[13];
     } else {
         for (; nextMove < P2_GOAL_PIT; ++nextMove) {
             if (makeMoveP2(nextMove, board, newBoard)) {
@@ -531,7 +533,8 @@ unsigned int OwariAlphaBetaDIMaxValue(unsigned int board[], unsigned int kmoves[
     } else if (status == STATE_TIED) {
         return COST_TIE;
     } else if (cdepth == mdepth) {
-        return COST_TIE + board[0] + board[1] + board[2] + board[3] + board[4] + board[5] + board[6] - SEEDS_TIE;
+        return COST_TIE + board[0] + board[1] + board[2] + board[3] + board[4] + board[5] + board[6] -
+            board[7] - board[8] - board[9] - board[10] - board[11] - board[12] - board[13];
     } else {
         if (killerMove < INVALID_MOVE) {
             if (makeMoveP1(killerMove, board, newBoard)) {
@@ -584,7 +587,8 @@ unsigned int OwariAlphaBetaDIMinValue(unsigned int board[], unsigned int kmoves[
     } else if (status == STATE_TIED) {
         return COST_TIE;
     } else if (cdepth == mdepth) {
-        return COST_TIE + board[0] + board[1] + board[2] + board[3] + board[4] + board[5] + board[6] - SEEDS_TIE;
+        return COST_TIE + board[0] + board[1] + board[2] + board[3] + board[4] + board[5] + board[6] -
+            board[7] - board[8] - board[9] - board[10] - board[11] - board[12] - board[13];
     } else {
         for (; nextMove < P2_GOAL_PIT; ++nextMove) {
             if (makeMoveP2(nextMove, board, newBoard)) {
@@ -650,7 +654,8 @@ unsigned int OwariAlphaBetaMaxValue(unsigned int board[], unsigned int alpha, un
     } else if (status == STATE_TIED) {
         return COST_TIE;
     } else if (cdepth == mdepth) {
-        return COST_TIE + board[0] + board[1] + board[2] + board[3] + board[4] + board[5] + board[6] - SEEDS_TIE;
+        return COST_TIE + board[0] + board[1] + board[2] + board[3] + board[4] + board[5] + board[6] -
+            board[7] - board[8] - board[9] - board[10] - board[11] - board[12] - board[13];
     } else {
         for (; nextMove < P1_GOAL_PIT; ++nextMove) {
             if (makeMoveP1(nextMove, board, newBoard)) {
@@ -687,7 +692,8 @@ unsigned int OwariAlphaBetaMinValue(unsigned int board[], unsigned int alpha, un
     } else if (status == STATE_TIED) {
         return COST_TIE;
     } else if (cdepth == mdepth) {
-        return COST_TIE + board[0] + board[1] + board[2] + board[3] + board[4] + board[5] + board[6] - SEEDS_TIE;
+        return COST_TIE + board[0] + board[1] + board[2] + board[3] + board[4] + board[5] + board[6] -
+            board[7] - board[8] - board[9] - board[10] - board[11] - board[12] - board[13];
     } else {
         for (; nextMove < P2_GOAL_PIT; ++nextMove) {
             if (makeMoveP2(nextMove, board, newBoard)) {
@@ -854,8 +860,8 @@ void runOwari() {
 
         if (turn == PLAYER_1) {
             begin = clock();
-            //move = OwariAlphaBetaDIFindMove(board, p1kmoves, p1mdepth);
-            move = OwariAlphaBetaAWFindMove(board, p1kmoves, p1mdepth);
+            move = OwariAlphaBetaDIFindMove(board, p1kmoves, p1mdepth);
+            //move = OwariAlphaBetaAWFindMove(board, p1kmoves, p1mdepth);
             end = clock();
             cout << "Elapsed time: " << double(end - begin) / CLOCKS_PER_SEC << endl;
             makeMoveP1(move, board, board);
