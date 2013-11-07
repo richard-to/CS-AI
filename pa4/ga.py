@@ -92,54 +92,50 @@ class KnapsackGA:
         nextGen = sorted(nextGen, key=lambda genome: genome[FITNESS], reverse=True)
         return nextGen[:popSize]
 
+    def pickBest(self, population):
+        bestGenome = population[0]
+        for genome in population:
+            if genome[FITNESS] > bestGenome[FITNESS]:
+                bestGenome = genome
+        return bestGenome
+
     def printPop(self, population):
         for genome in population:
             print genome
 
 
+def createObjList(rand, nItems, mWeight, mValue):
+    return [[rand.randint(1, mWeight), rand.randint(1, mValue)] for i in xrange(nItems)]
+
+
 def main():
-    #random.seed(10)
-    numIterations = 50
-    maxWeight = 100
-    popSize = 4
-    mutationPct = 0.1
-    objList = [
-        [45, 3],
-        [40, 5],
-        [50, 8],
-        [90, 10]
-    ]
+    seed = 10
+    numIterations = 1000
+    numItems = 1000
+    maxItemValue = 500
+    maxItemWeight = 50
 
+    maxWeight = 2500
+    popSize = 100
+    mutationPct = 0.2
+
+    rand = random.Random()
+    if seed > 0:
+        rand.seed(seed)
+
+    objList = createObjList(rand, numItems, maxItemWeight, maxItemValue)
     knapsackGA = KnapsackGA(mutationPct, objList, maxWeight)
-
-    print "Starting population"
     population = knapsackGA.genInitialPop(popSize)
-    print population
-
     currentGen = 0
     while currentGen < numIterations:
-        print "\n\nGeneration", currentGen
-
         newPop = knapsackGA.tournamentSelection(population)
-        print "\nRunning Tournament Selection"
-        knapsackGA.printPop(newPop)
-
         newPop = knapsackGA.crossover(newPop)
-        print "\nRunning Crossover"
-        knapsackGA.printPop(newPop)
-
         newPop = knapsackGA.mutate(newPop)
-        print "\nRunning Mutation"
-        knapsackGA.printPop(newPop)
-
         population = knapsackGA.survivorSelection(population, newPop)
-        print "\nRunning Survivor Selection"
-        knapsackGA.printPop(population)
-
         currentGen += 1
+    bestGenome = knapsackGA.pickBest(population)
 
-    print "\nFinal Population"
-    knapsackGA.printPop(population)
+    print bestGenome[FITNESS]
 
 
 if __name__ == '__main__':
