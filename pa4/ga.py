@@ -1,97 +1,108 @@
 import random
 
-def genInitialPop(popSize, maxWeight, objList):
-    n = len(objList)
-    population = []
-    for i in xrange(popSize):
-        knapsack = [0] * n
-        value = 0
+ITEM_WEIGHT = 0
+ITEM_VALUE = 1
+FITNESS = 0
+KNAPSACK = 1
+NOT_IN_KNAPSACK = 0
+IN_KNAPSACK = 1
+DEFAULT_FITNESS = 0
+
+class KnapsackGA:
+    def __init__(self, mutationPct, objList, maxWeight):
+        self.mutationPct = mutationPct
+        self.objList = objList
+        self.maxWeight = maxWeight
+        self.numObj = len(self.objList)
+
+    def calcFitness(self, knapsack):
         weight = 0
-        for g in xrange(n):
-            knapsack[g] = random.randint(0, 1)
-            if knapsack[g] > 0:
-                weight += objList[g][0]
-                value += objList[g][1]
-        if weight > maxWeight:
+        value = 0
+        for i in xrange(self.numObj):
+            if knapsack[i] == IN_KNAPSACK:
+                weight += self.objList[i][ITEM_WEIGHT]
+                value += self.objList[i][ITEM_VALUE]
+        if weight > self.maxWeight:
             value = 0
-        population.append([value, knapsack])
-    return population
+        return value
 
+    def genInitialPop(self, popSize):
+        population = []
+        for i in xrange(popSize):
+            knapsack = [0] * self.numObj
+            for g in xrange(self.numObj):
+                knapsack[g] = random.randint(0, 1)
+            value = self.calcFitness(knapsack)
+            population.append([value, knapsack])
+        return population
 
-def tournamentSelection(population):
-    popSize = len(population)
-    newPopulation = []
-    for i in xrange(popSize):
-        genome1 = population[random.randint(0, popSize - 1)]
-        genome2 = population[random.randint(0, popSize - 1)]
-        if genome1[0] > genome2[0]:
-            newPopulation.append([genome1[0], genome1[1][:]])
-        else:
-            newPopulation.append([genome2[0], genome2[1][:]])
-    return newPopulation
-        
-
-    
-def mutate(parent1, mutationPct, maxWeight, objList):
-    child1 = parent1[1][:]
-    child1Weight = 0
-    child1Value = 0
-
-    for i in xrange(len(child1)):
-        if random.random() < mutationPct:
-            if child1[i] == 0:
-                child1[i] = 1
+    def tournamentSelection(self, population):
+        popSize = len(population)
+        newPopulation = []
+        for i in xrange(popSize):
+            genome1 = population[random.randint(0, popSize - 1)]
+            genome2 = population[random.randint(0, popSize - 1)]
+            if genome1[FITNESS] > genome2[FITNESS]:
+                newPopulation.append([genome1[FITNESS], genome1[KNAPSACK][:]])
             else:
-                child1[i] = 0
+                newPopulation.append([genome2[FITNESS], genome2[KNAPSACK][:]])
+        return newPopulation
 
-    for i in xrange(len(child1)):
-        if child1[i] > 0:
-            child1Weight += objList[i][0]
-            child1Value += objList[i][1]
+    def crossover(self, population):
+        popSize = len(population)
+        newPop = []
+        while len(newPop) < popSize:
+            genome1 = population[random.randint(0, popSize - 1)]
+            genome2 = population[random.randint(0, popSize - 1)]
+            newPop.extend(self._crossover(genome1, genome2))
+        return newPop
 
-    if child1Weight > maxWeight:
-        child1Value = 0
-    return [child1Value, child1]
+    def _crossover(self, genome1, genome2):
+        cPoint = random.randint(1, self.numObj - 2)
 
+        knapsack1 = genome1[KNAPSACK][0:cPoint] + genome1[KNAPSACK][cPoint:]
+        value1 = self.calcFitness(knapsack1)
 
-def crossover(parent1, parent2, maxWeight, objList):
-    cPoint = random.randint(1, len(objList) - 2)
+        knapsack2 = genome2[KNAPSACK][0:cPoint] + genome2[KNAPSACK][cPoint:]
+        value2 = self.calcFitness(knapsack2)
 
-    child1 = parent1[1][0:cPoint] + parent2[1][cPoint:]
-    child1Value = 0
-    child1Weight = 0
+        return [
+            [value1, knapsack1],
+            [value2, knapsack2]
+        ]
 
-    child2 = parent2[1][0:cPoint] + parent1[1][cPoint:]
-    child2Value = 0
-    child2Weight = 0
+    def mutate(self, population):
+        return [self._mutate(genome) for genome in population]
 
-    for i in xrange(len(objList)):
-        if child1[i] > 0:
-            child1Weight += objList[i][0]
-            child1Value += objList[i][1]
+    def _mutate(self, genome):
+        knapsack = genome[KNAPSACK][:]
+        for i in xrange(self.numObj):
+            if random.random() < self.mutationPct:
+                if knapsack[i] == IN_KNAPSACK:
+                    knapsack[i] = NOT_IN_KNAPSACK
+                else:
+                    knapsack[i] = IN_KNAPSACK
+        value = self.calcFitness(knapsack)
+        return [value, knapsack]
 
-        if child2[i] > 0:
-            child2Weight += objList[i][0]
-            child2Value += objList[i][1]
+    def survivorSelection(self, oldPop, newPop):
+        popSize = len(oldPop)
+        nextGen = oldPop[:]
+        nextGen.extend(newPop)
+        nextGen = sorted(nextGen, key=lambda genome: genome[FITNESS], reverse=True)
+        return nextGen[:popSize]
 
-    if child1Weight > maxWeight:
-        child1Value = 0
-
-    if child2Weight > maxWeight:
-        child2Value = 0
-
-    return [
-        [child1Value, child1],
-        [child2Value, child2]
-    ]
+    def printPop(self, population):
+        for genome in population:
+            print genome
 
 
 def main():
     #random.seed(10)
-    numIterations = 10
+    numIterations = 50
     maxWeight = 100
     popSize = 4
-    mutationPct = 0.05
+    mutationPct = 0.1
     objList = [
         [45, 3],
         [40, 5],
@@ -99,37 +110,37 @@ def main():
         [90, 10]
     ]
 
+    knapsackGA = KnapsackGA(mutationPct, objList, maxWeight)
+
     print "Starting population"
-    population = genInitialPop(popSize, maxWeight, objList)
+    population = knapsackGA.genInitialPop(popSize)
     print population
 
     currentGen = 0
     while currentGen < numIterations:
-        print "Generation ", currentGen
-        print "Selection"
-        newPopulation = tournamentSelection(population)
-        print newPopulation
+        print "\n\nGeneration", currentGen
 
-        recombinedPop = []
-        while len(recombinedPop) < popSize:
-            child1 = newPopulation[random.randint(0, popSize - 1)]
-            child2 = newPopulation[random.randint(0, popSize - 1)]
-            recombinedChildren = crossover(child1, child2, maxWeight, objList)
-            recombinedPop.append(recombinedChildren[0])
-            recombinedPop.append(recombinedChildren[1])
+        newPop = knapsackGA.tournamentSelection(population)
+        print "\nRunning Tournament Selection"
+        knapsackGA.printPop(newPop)
 
-        print "After crossover"
-        print recombinedPop
+        newPop = knapsackGA.crossover(newPop)
+        print "\nRunning Crossover"
+        knapsackGA.printPop(newPop)
 
-        mutatedPop = []
-        for i in xrange(len(recombinedPop)):
-            mutatedPop.append(
-                mutate(recombinedPop[i], mutationPct, maxWeight, objList))
-        print "After mutation"
-        print mutatedPop
+        newPop = knapsackGA.mutate(newPop)
+        print "\nRunning Mutation"
+        knapsackGA.printPop(newPop)
+
+        population = knapsackGA.survivorSelection(population, newPop)
+        print "\nRunning Survivor Selection"
+        knapsackGA.printPop(population)
+
         currentGen += 1
-        
-    print "Final Population"
-    print mutatedPop
+
+    print "\nFinal Population"
+    knapsackGA.printPop(population)
+
+
 if __name__ == '__main__':
     main()
