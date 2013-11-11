@@ -1,4 +1,5 @@
 import random
+import time
 
 ITEM_WEIGHT = 0
 ITEM_VALUE = 1
@@ -9,7 +10,8 @@ IN_KNAPSACK = 1
 DEFAULT_FITNESS = 0
 
 class KnapsackGA:
-    def __init__(self, mutationPct, objList, maxWeight):
+    def __init__(self, objList, maxWeight, crossoverPct, mutationPct):
+        self.crossoverPct = crossoverPct
         self.mutationPct = mutationPct
         self.objList = objList
         self.maxWeight = maxWeight
@@ -26,12 +28,14 @@ class KnapsackGA:
             value = 0
         return value
 
-    def genInitialPop(self, popSize):
+    def genInitialPop(self, popSize, items=100):
         population = []
+        objIndex = xrange(self.numObj)
         for i in xrange(popSize):
-            knapsack = [0] * self.numObj
-            for g in xrange(self.numObj):
-                knapsack[g] = random.randint(0, 1)
+            knapsack = [NOT_IN_KNAPSACK] * self.numObj
+            pickedItems = random.sample(objIndex, items)
+            for itemIndex in pickedItems:
+                knapsack[itemIndex] = IN_KNAPSACK
             value = self.calcFitness(knapsack)
             population.append([value, knapsack])
         return population
@@ -49,12 +53,20 @@ class KnapsackGA:
         return newPopulation
 
     def crossover(self, population):
-        popSize = len(population)
+        popSize = len(population) / 2
         newPop = []
-        while len(newPop) < popSize:
-            genome1 = population[random.randint(0, popSize - 1)]
-            genome2 = population[random.randint(0, popSize - 1)]
-            newPop.extend(self._crossover(genome1, genome2))
+        for i in xrange(popSize):
+            genome1 = population[i * 2]
+            genome2 = population[i * 2 + 1]
+            if random.random() < self.crossoverPct:
+                newPop.extend(self._crossover(genome1, genome2))
+            else:
+                newPop.append(genome1)
+                newPop.append(genome2)
+
+        if newPop < len(population):
+            newPop.append(population[-1])
+
         return newPop
 
     def _crossover(self, genome1, genome2):
@@ -110,23 +122,25 @@ def createObjList(rand, nItems, mWeight, mValue):
 
 def main():
     seed = 10
-    numIterations = 1000
+    numIterations = 3000
     numItems = 1000
     maxItemValue = 500
     maxItemWeight = 50
 
     maxWeight = 2500
     popSize = 100
-    mutationPct = 0.2
+    crossoverPct = 0.80
+    mutationPct = 0.05
 
     rand = random.Random()
     if seed > 0:
         rand.seed(seed)
 
     objList = createObjList(rand, numItems, maxItemWeight, maxItemValue)
-    knapsackGA = KnapsackGA(mutationPct, objList, maxWeight)
+    knapsackGA = KnapsackGA(objList, maxWeight, crossoverPct, mutationPct)
     population = knapsackGA.genInitialPop(popSize)
     currentGen = 0
+    startTime = time.time()
     while currentGen < numIterations:
         newPop = knapsackGA.tournamentSelection(population)
         newPop = knapsackGA.crossover(newPop)
@@ -134,7 +148,7 @@ def main():
         population = knapsackGA.survivorSelection(population, newPop)
         currentGen += 1
     bestGenome = knapsackGA.pickBest(population)
-
+    print time.time() - startTime
     print bestGenome[FITNESS]
 
 
